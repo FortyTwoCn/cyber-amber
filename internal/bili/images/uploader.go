@@ -111,7 +111,7 @@ func (u *HTTPUploader) Upload(ctx context.Context, path, csrf string) (*Uploaded
 			return nil, err
 		}
 		var result client.Envelope[UploadedImage]
-		err = u.client.DoMultipart(ctx, endpoints.ImageUpload, map[string]string{"biz": "draw", "category": "daily", "csrf": csrf}, "file_up", "cyber-amber.gif", "image/gif", file, &result)
+		err = u.client.DoMultipart(ctx, endpoints.ImageUpload, map[string]string{"biz": "draw", "category": "daily", "csrf": csrf, "csrf_token": csrf}, "file_up", "cyber-amber.gif", "image/gif", file, &result)
 		_ = file.Close()
 		if err == nil {
 			err = client.Check(result.Code, result.Message)

@@ -6,6 +6,8 @@ Cyber Amber is distributed under **GNU GPL-3.0-only**. See `LICENSE`.
 
 `FortyTwoCn/downkyicore` commit `b8edb9b12bf214411fca933ebb07457c949f577f`, GPL-3.0. The protocol and algorithm reference scope is documented in `docs/REFERENCES.md`. Copyright remains with its respective authors.
 
+`Chiyang001/BiliGo` commit `c546e3b8be6a1b02e9f065f4ca22f69112fb40cc` was inspected only for observable Bilibili request behavior at the user's request. No license was declared at the inspected revision, so no source code from that repository was copied, translated, modified, or distributed in Cyber Amber. See `docs/REFERENCES.md` for the exact inspection scope.
+
 ## Go dependencies
 
 Direct dependencies and their upstream licenses (verify again when upgrading):

@@ -209,7 +209,8 @@ func (s *Service) PollQR(ctx context.Context, key string) (QRPoll, error) {
 		Code         int    `json:"code"`
 		Message      string `json:"message"`
 	}]
-	if err := s.client.GetPassportJSON(ctx, endpoints.QRCodePoll, url.Values{"qrcode_key": {key}}, &result); err != nil {
+	setCookies, err := s.client.GetPassportJSONWithCookies(ctx, endpoints.QRCodePoll, url.Values{"qrcode_key": {key}}, &result)
+	if err != nil {
 		return QRPoll{}, err
 	}
 	if err := client.Check(result.Code, result.Message); err != nil {
@@ -223,7 +224,7 @@ func (s *Service) PollQR(ctx context.Context, key string) (QRPoll, error) {
 	case 86038:
 		return QRPoll{State: "expired", Message: result.Data.Message}, nil
 	case 0:
-		session, err := SessionFromLoginURL(result.Data.URL, result.Data.RefreshToken, nil)
+		session, err := SessionFromLoginURL(result.Data.URL, result.Data.RefreshToken, setCookies)
 		if err != nil {
 			return QRPoll{}, err
 		}

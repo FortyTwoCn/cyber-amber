@@ -64,7 +64,7 @@ func (p *HTTPPublisher) PublishRootImageComment(ctx context.Context, request Pub
 		Size   float64 `json:"img_size"`
 	}
 	pictures, _ := json.Marshal([]picturePayload{{Source: request.Image.URL, Width: request.Image.Width, Height: request.Image.Height, Size: request.Image.SizeKB}})
-	form := url.Values{"oid": {strconv.FormatInt(request.AID, 10)}, "type": {VideoReplyType}, "message": {message}, "pictures": {string(pictures)}, "at_name_to_mid": {string(atMap)}, "plat": {"1"}, "csrf": {request.CSRF}, "gaia_source": {"main_web"}, "statistics": {`{"appId":100,"platform":5}`}}
+	form := url.Values{"oid": {strconv.FormatInt(request.AID, 10)}, "type": {VideoReplyType}, "message": {message}, "pictures": {string(pictures)}, "at_name_to_mid": {string(atMap)}, "plat": {"1"}, "csrf": {request.CSRF}, "csrf_token": {request.CSRF}, "gaia_source": {"main_web"}, "statistics": {`{"appId":100,"platform":5}`}}
 	var result struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
@@ -201,7 +201,7 @@ func (p *HTTPPublisher) ReplyOriginal(ctx context.Context, aid, rootRPID, parent
 	if aid <= 0 || rootRPID <= 0 || parentRPID <= 0 || message == "" || csrf == "" {
 		return 0, errors.New("invalid original comment reply")
 	}
-	form := url.Values{"oid": {strconv.FormatInt(aid, 10)}, "type": {VideoReplyType}, "root": {strconv.FormatInt(rootRPID, 10)}, "parent": {strconv.FormatInt(parentRPID, 10)}, "message": {message}, "plat": {"1"}, "csrf": {csrf}}
+	form := url.Values{"oid": {strconv.FormatInt(aid, 10)}, "type": {VideoReplyType}, "root": {strconv.FormatInt(rootRPID, 10)}, "parent": {strconv.FormatInt(parentRPID, 10)}, "message": {message}, "plat": {"1"}, "csrf": {csrf}, "csrf_token": {csrf}}
 	var result struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`

@@ -83,7 +83,21 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, out
 }
 
 func (c *Client) GetPassportJSON(ctx context.Context, path string, query url.Values, out any) error {
-	return c.doJSON(ctx, http.MethodGet, c.PassportURL(path, query), nil, out, false)
+	_, err := c.GetPassportJSONWithCookies(ctx, path, query, out)
+	return err
+}
+
+// GetPassportJSONWithCookies uses the request context expected by the passport
+// website and returns response cookies so QR login can persist credentials even
+// when a successful response does not repeat every cookie in its callback URL.
+func (c *Client) GetPassportJSONWithCookies(ctx context.Context, path string, query url.Values, out any) ([]*http.Cookie, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, c.PassportURL(path, query), nil, false)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Referer", c.passport+"/")
+	req.Header.Set("Origin", c.passport)
+	return c.doJSONRequest(req, out)
 }
 
 func (c *Client) PostForm(ctx context.Context, path string, form url.Values, out any) error {
@@ -148,27 +162,33 @@ func (c *Client) doJSON(ctx context.Context, method, target string, body io.Read
 	if len(contentType) > 0 {
 		req.Header.Set("Content-Type", contentType[0])
 	}
+	_, err = c.doJSONRequest(req, out)
+	return err
+}
+
+func (c *Client) doJSONRequest(req *http.Request, out any) ([]*http.Cookie, error) {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.observe(req.URL.Path, 0)
-		return fmt.Errorf("bilibili request: %w", err)
+		return nil, fmt.Errorf("bilibili request: %w", err)
 	}
 	c.observe(req.URL.Path, resp.StatusCode)
 	defer resp.Body.Close()
+	cookies := resp.Cookies()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxJSONBody+1))
 	if err != nil {
-		return fmt.Errorf("read bilibili response: %w", err)
+		return nil, fmt.Errorf("read bilibili response: %w", err)
 	}
 	if len(data) > maxJSONBody {
-		return errors.New("bilibili JSON response exceeds size limit")
+		return nil, errors.New("bilibili JSON response exceeds size limit")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return classify(resp.StatusCode, 0, truncate(string(data), 256))
+		return nil, classify(resp.StatusCode, 0, truncate(string(data), 256))
 	}
 	if err := json.Unmarshal(data, out); err != nil {
-		return &APIError{HTTPStatus: resp.StatusCode, Code: -1, Message: "响应结构不兼容: " + err.Error(), Permanent: true}
+		return nil, &APIError{HTTPStatus: resp.StatusCode, Code: -1, Message: "响应结构不兼容: " + err.Error(), Permanent: true}
 	}
-	return nil
+	return cookies, nil
 }
 
 func (c *Client) observe(operation string, status int) {
