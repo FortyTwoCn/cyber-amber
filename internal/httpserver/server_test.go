@@ -147,6 +147,32 @@ func TestAdminLoginAndCSRFFailure(t *testing.T) {
 	}
 }
 
+func TestAdminQRFeedbackIsVisibleBeforeRequest(t *testing.T) {
+	server, _ := testServer(t, true)
+	handler := server.Handler()
+
+	page := httptest.NewRecorder()
+	handler.ServeHTTP(page, httptest.NewRequest(http.MethodGet, "/admin", nil))
+	if page.Code != http.StatusOK {
+		t.Fatalf("admin page %d %s", page.Code, page.Body.String())
+	}
+	if !strings.Contains(page.Body.String(), "Header String") || !strings.Contains(page.Body.String(), `id="qr-status"`) {
+		t.Fatalf("admin page does not explain the cookie format or expose QR status feedback: %s", page.Body.String())
+	}
+
+	asset := httptest.NewRecorder()
+	handler.ServeHTTP(asset, httptest.NewRequest(http.MethodGet, "/assets/admin.js", nil))
+	if asset.Code != http.StatusOK {
+		t.Fatalf("admin asset %d %s", asset.Code, asset.Body.String())
+	}
+	script := asset.Body.String()
+	showQR := strings.Index(script, `$("qr-box").classList.remove("hidden")`)
+	requestQR := strings.Index(script, `await api("/api/v1/admin/account/qrcode"`)
+	if showQR < 0 || requestQR < 0 || showQR > requestQR {
+		t.Fatal("QR feedback container is not shown before the network request")
+	}
+}
+
 func TestTrustedProxyHandling(t *testing.T) {
 	server, _ := testServer(t, false)
 	request := httptest.NewRequest(http.MethodGet, "/", nil)

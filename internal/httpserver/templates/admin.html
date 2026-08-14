@@ -1,12 +1,146 @@
 {{define "admin.html"}}
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>管理后台 · 赛博琥珀</title><link rel="stylesheet" href="/assets/style.css"><script defer src="/assets/admin.js"></script></head>
-<body><header class="topbar"><div class="brand">✦ 赛博琥珀 / ADMIN</div><a href="/">公开页面</a></header><main class="shell">
-<section id="login-panel" class="panel"><div class="step">AUTH</div><div class="panel-body"><h1>管理员登录</h1><form id="login-form"><label>管理员密码<input id="password" type="password" autocomplete="current-password" required></label><button type="submit">登录</button><p id="login-status" role="alert"></p></form></div></section>
-<div id="admin-panel" class="hidden">
-<section class="panel"><div class="step">BOT</div><div class="panel-body"><h2>机器人、账号与运行参数</h2><pre id="account-status" class="status-box"></pre><div class="actions"><button id="qr-button">扫码登录</button><button id="check-account" class="secondary">检查 Cookie</button><button id="pause-button" class="danger">暂停机器人</button><button id="resume-button" class="secondary">恢复机器人</button><button id="logout-button" class="secondary">退出</button></div><div id="qr-box" class="hidden"><img id="qr-image" alt="B站扫码登录二维码"><p id="qr-status"></p></div><details><summary>从受保护环境导入 Cookie</summary><label>Cookie<textarea id="cookie-input" rows="4" autocomplete="off"></textarea></label><button id="cookie-button">验证并加密保存</button></details></div></section>
-<section class="panel"><div class="step">SETTINGS</div><div class="panel-body"><h2>运行参数</h2><p class="hint">保存前会进行与启动时相同的完整校验；为保证队列与并发语义一致，新参数在服务重启后生效。</p><label>非敏感运行设置（JSON）<textarea id="settings-json" rows="24" spellcheck="false" autocomplete="off"></textarea></label><div class="actions"><button id="save-settings">校验并保存</button><button id="reload-settings" class="secondary">重新载入</button><button id="reset-settings" class="danger">恢复部署配置</button></div><p id="settings-status" role="status"></p></div></section>
-<section class="panel"><div class="step">QUEUE</div><div class="panel-body"><h2>最近任务</h2><button id="refresh-jobs" class="secondary">刷新</button><div class="table-wrap"><table><thead><tr><th>任务</th><th>来源</th><th>状态</th><th>进度</th><th>错误</th><th>操作</th></tr></thead><tbody id="jobs-body"></tbody></table></div><pre id="job-detail" class="status-box hidden" aria-live="polite"></pre></div></section>
-<section class="panel"><div class="step">ABUSE</div><div class="panel-body"><h2>黑名单</h2><form id="block-form" class="form-grid"><label>主体类型<select id="block-type"><option value="bili_mid">B站 MID</option><option value="ip">IP</option></select></label><label>主体 ID<input id="block-id" required></label><label>原因<input id="block-reason" required maxlength="200"></label><label>到期时间（可空）<input id="block-expiry" type="datetime-local"></label><button type="submit">加入黑名单</button></form><div class="table-wrap"><table><thead><tr><th>类型</th><th>ID</th><th>原因</th><th>到期</th><th>操作</th></tr></thead><tbody id="blocked-body"></tbody></table></div></div></section>
-<section class="panel"><div class="step">AUDIT</div><div class="panel-body"><h2>审计日志</h2><div class="actions"><button id="refresh-audit" class="secondary">刷新</button><button id="clear-cache" class="danger">清理视频与弹幕缓存</button></div><div class="table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>请求 ID</th></tr></thead><tbody id="audit-body"></tbody></table></div></div></section>
-</div></main></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="赛博琥珀自助机管理控制台">
+  <title>控制台 · 赛博琥珀</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script defer src="/assets/admin.js"></script>
+</head>
+<body class="admin-page">
+  <a class="skip" href="#main">跳到主要内容</a>
+  <header class="app-header">
+    <a class="brand-lockup" href="/">
+      <span class="brand-mark" aria-hidden="true">CA</span>
+      <span><strong>赛博琥珀</strong><small>CYBER AMBER</small></span>
+    </a>
+    <nav class="header-nav" aria-label="页面导航">
+      <span class="live-indicator"><i aria-hidden="true"></i> ADMIN CONSOLE</span>
+      <a class="nav-pill" href="/">公开生成器</a>
+    </nav>
+  </header>
+
+  <main id="main" class="admin-shell">
+    <section id="login-panel" class="auth-shell" aria-labelledby="login-title">
+      <div class="auth-visual" aria-hidden="true">
+        <div class="amber-orbit"><span>✦</span></div>
+        <p>CYBER AMBER<br>CONTROL PLANE</p>
+      </div>
+      <div class="auth-card">
+        <p class="section-kicker">SECURE ACCESS</p>
+        <h1 id="login-title">欢迎回来</h1>
+        <p class="lead-copy">登录管理账号，查看任务队列、B站会话与运行状态。</p>
+        <form id="login-form" class="stack-form">
+          <label for="password">管理员密码
+            <input id="password" type="password" autocomplete="current-password" placeholder="输入管理后台密码" required>
+          </label>
+          <button type="submit" class="button-wide">进入控制台 <span aria-hidden="true">→</span></button>
+          <p id="login-status" class="form-message" role="alert" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <div id="admin-panel" class="hidden">
+      <section class="dashboard-heading">
+        <div>
+          <p class="section-kicker">OPERATIONS OVERVIEW</p>
+          <h1>管理控制台</h1>
+          <p>账号、队列和渲染服务的实时操作面板。</p>
+        </div>
+        <div class="dashboard-actions">
+          <span id="dry-run-badge" class="badge warning">DRY RUN</span>
+          <button id="logout-button" class="ghost small">退出登录</button>
+        </div>
+      </section>
+
+      <section class="metric-grid" aria-label="运行概览">
+        <article class="metric-card"><span class="metric-icon amber" aria-hidden="true">◉</span><div><small>B站账号</small><strong id="metric-account">未登录</strong></div></article>
+        <article class="metric-card"><span class="metric-icon blue" aria-hidden="true">⇥</span><div><small>排队任务</small><strong id="metric-queue">0</strong></div></article>
+        <article class="metric-card"><span class="metric-icon green" aria-hidden="true">◆</span><div><small>活跃任务</small><strong id="metric-active">0</strong></div></article>
+        <article class="metric-card"><span class="metric-icon violet" aria-hidden="true">⌁</span><div><small>机器人状态</small><strong id="metric-bot">运行中</strong></div></article>
+      </section>
+
+      <div class="admin-grid">
+        <section class="surface span-2" aria-labelledby="account-title">
+          <div class="surface-header">
+            <div><p class="section-kicker">BILIBILI SESSION</p><h2 id="account-title">机器人账号</h2></div>
+            <span id="account-badge" class="badge neutral">未连接</span>
+          </div>
+
+          <div class="account-summary">
+            <div class="account-avatar" aria-hidden="true">B</div>
+            <div><strong id="account-name">尚未登录 B站</strong><p id="account-meta">扫码登录或导入浏览器 Cookie</p></div>
+          </div>
+
+          <div class="actions account-actions">
+            <button id="qr-button"><span aria-hidden="true">▦</span> 扫码登录</button>
+            <button id="check-account" class="secondary">检查会话</button>
+            <button id="pause-button" class="danger">暂停机器人</button>
+            <button id="resume-button" class="secondary">恢复机器人</button>
+          </div>
+
+          <div id="qr-box" class="auth-method hidden" aria-live="polite">
+            <div class="qr-frame"><div id="qr-placeholder" class="qr-placeholder"><span aria-hidden="true">▦</span><small>正在请求二维码</small></div><img id="qr-image" class="hidden" alt="B站扫码登录二维码"></div>
+            <div class="auth-method-copy">
+              <p class="section-kicker">QR SIGN IN</p>
+              <h3>使用哔哩哔哩客户端扫码</h3>
+              <p id="qr-status" class="form-message" role="status">正在连接 B站登录服务…</p>
+              <p class="hint">扫码后请在手机端确认。二维码过期可重新点击“扫码登录”。</p>
+            </div>
+          </div>
+
+          <details class="auth-details">
+            <summary><span>使用 Cookie 登录</span><small>适用于已登录的浏览器会话</small></summary>
+            <div class="details-body">
+              <div class="notice info"><strong>导出时选择 Header String，不要选择 JSON。</strong><span>粘贴原始 Cookie 请求头，至少包含 SESSDATA、bili_jct 和 DedeUserID。</span></div>
+              <label for="cookie-input">B站 Cookie
+                <textarea id="cookie-input" rows="5" autocomplete="off" spellcheck="false" placeholder="SESSDATA=...; bili_jct=...; DedeUserID=123456; buvid3=...; buvid4=..."></textarea>
+              </label>
+              <div class="actions"><button id="cookie-button">验证并加密保存</button><span id="cookie-status" class="form-message" role="status"></span></div>
+            </div>
+          </details>
+
+          <details class="raw-details"><summary>查看完整运行状态</summary><pre id="account-status" class="status-box"></pre></details>
+        </section>
+
+        <section class="surface" aria-labelledby="settings-title">
+          <div class="surface-header"><div><p class="section-kicker">RUNTIME POLICY</p><h2 id="settings-title">运行参数</h2></div><span class="badge neutral">JSON</span></div>
+          <p class="hint">保存时执行完整校验。为保持队列语义一致，修改将在安全重启后生效。</p>
+          <label for="settings-json">非敏感运行设置
+            <textarea id="settings-json" class="code-editor" rows="20" spellcheck="false" autocomplete="off"></textarea>
+          </label>
+          <div class="actions"><button id="save-settings">保存设置</button><button id="reload-settings" class="secondary">重新载入</button><button id="reset-settings" class="ghost danger-text">恢复部署值</button></div>
+          <p id="settings-status" class="form-message" role="status"></p>
+        </section>
+
+        <section class="surface span-2" aria-labelledby="queue-title">
+          <div class="surface-header"><div><p class="section-kicker">PERSISTENT QUEUE</p><h2 id="queue-title">最近任务</h2></div><button id="refresh-jobs" class="ghost small">刷新队列</button></div>
+          <div class="table-wrap"><table><thead><tr><th>任务</th><th>来源</th><th>状态</th><th>进度</th><th>错误</th><th>操作</th></tr></thead><tbody id="jobs-body"></tbody></table></div>
+          <pre id="job-detail" class="status-box hidden" aria-live="polite"></pre>
+        </section>
+
+        <section class="surface" aria-labelledby="abuse-title">
+          <div class="surface-header"><div><p class="section-kicker">ABUSE CONTROL</p><h2 id="abuse-title">黑名单</h2></div></div>
+          <form id="block-form" class="form-grid compact-form">
+            <label>主体类型<select id="block-type"><option value="bili_mid">B站 MID</option><option value="ip">IP 地址</option></select></label>
+            <label>主体 ID<input id="block-id" required></label>
+            <label>原因<input id="block-reason" required maxlength="200"></label>
+            <label>到期时间（可空）<input id="block-expiry" type="datetime-local"></label>
+            <button type="submit">加入黑名单</button><span id="block-status" class="form-message" role="status"></span>
+          </form>
+          <div class="table-wrap"><table><thead><tr><th>类型</th><th>ID</th><th>原因</th><th>到期</th><th>操作</th></tr></thead><tbody id="blocked-body"></tbody></table></div>
+        </section>
+
+        <section class="surface span-2" aria-labelledby="audit-title">
+          <div class="surface-header"><div><p class="section-kicker">AUDIT TRAIL</p><h2 id="audit-title">审计日志</h2></div><div class="actions no-margin"><button id="refresh-audit" class="ghost small">刷新日志</button><button id="clear-cache" class="ghost small danger-text">清理缓存</button></div></div>
+          <div class="table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th>目标</th><th>请求 ID</th></tr></thead><tbody id="audit-body"></tbody></table></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="app-footer"><span>CYBER AMBER CONTROL PLANE</span><span>所有凭据均在服务端加密保存</span></footer>
+</body>
+</html>
 {{end}}

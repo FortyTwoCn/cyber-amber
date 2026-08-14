@@ -9,50 +9,102 @@
   <link rel="stylesheet" href="/assets/style.css">
   <script defer src="/assets/app.js"></script>
 </head>
-<body>
+<body class="public-page">
   <a class="skip" href="#main">跳到主要内容</a>
-  <header class="topbar"><div class="brand"><span aria-hidden="true">✦</span> 赛博琥珀自助机</div><a href="/admin">管理后台</a></header>
-  <main id="main" class="shell">
-    <section class="hero">
-      <p class="eyebrow">CYBER AMBER TERMINAL / GIF CAPSULE</p>
-      <h1>把十秒钟，封存在琥珀里。</h1>
-      <p>输入 BV 号、B站视频链接或分享文本。先解析视频并选择正确分P，再创建 GIF 任务。</p>
+  <header class="app-header">
+    <a class="brand-lockup" href="/">
+      <span class="brand-mark" aria-hidden="true">CA</span>
+      <span><strong>赛博琥珀</strong><small>CYBER AMBER</small></span>
+    </a>
+    <nav class="header-nav" aria-label="页面导航">
+      <span class="live-indicator"><i aria-hidden="true"></i> SYSTEM ONLINE</span>
+      <a class="nav-pill" href="/admin">管理控制台</a>
+    </nav>
+  </header>
+
+  <main id="main" class="public-shell">
+    <section class="hero-grid">
+      <div class="hero-copy">
+        <p class="hero-kicker"><span>✦</span> GIF CAPSULE / BILIBILI UGC</p>
+        <h1>把流动的瞬间，<br><em>封存在赛博琥珀里。</em></h1>
+        <p class="hero-lead">输入一段 B站视频，选择时间与弹幕。其余的解析、渲染和体积优化，交给这台自助机。</p>
+        <div class="hero-actions"><a class="button primary large" href="#generator">开始制作 <span aria-hidden="true">→</span></a><a class="text-link" href="#how-it-works">了解工作流</a></div>
+        <div class="trust-row"><span>无需上传视频</span><span>自动优化体积</span><span>网页任务不发评论</span></div>
+      </div>
+      <div class="amber-console" aria-hidden="true">
+        <div class="console-top"><span><i></i><i></i><i></i></span><small>CAPSULE_PREVIEW.GIF</small></div>
+        <div class="console-visual"><div class="amber-core"><span>10s</span><small>MEMORY</small></div><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div></div>
+        <div class="console-log"><span><b>01</b> 视频轨道已锁定</span><span><b>02</b> 弹幕时间轴已校准</span><span><b>03</b> 调色板正在优化</span></div>
+      </div>
     </section>
-    <section class="panel" aria-labelledby="source-title">
-      <div class="step">01</div><div class="panel-body">
-      <h2 id="source-title">解析视频</h2>
-      <label for="video-input">BV 号、链接或分享文本</label>
-      <textarea id="video-input" rows="3" maxlength="4096" placeholder="例如：BV17x411w7KC 或 https://www.bilibili.com/video/BV17x411w7KC?p=2"></textarea>
-      <div class="actions"><button id="resolve-button" type="button">解析视频</button><span id="resolve-status" class="status" role="status" aria-live="polite"></span></div>
-      <article id="video-card" class="video-card hidden" aria-live="polite">
-        <img id="video-cover" alt="视频封面" loading="lazy"><div><h3 id="video-title"></h3><p id="video-owner"></p><p id="video-duration"></p></div>
-      </article></div>
+
+    <section id="how-it-works" class="workflow" aria-label="生成流程">
+      <article><span>01</span><div><strong>解析视频</strong><small>识别 BV、链接与分P</small></div></article>
+      <i aria-hidden="true">→</i>
+      <article><span>02</span><div><strong>设定片段</strong><small>时间、帧率与弹幕</small></div></article>
+      <i aria-hidden="true">→</i>
+      <article><span>03</span><div><strong>收取琥珀</strong><small>实时进度、预览与下载</small></div></article>
     </section>
-    <section class="panel" aria-labelledby="params-title">
-      <div class="step">02</div><div class="panel-body">
-      <h2 id="params-title">设定琥珀参数</h2>
-      <form id="job-form">
-        <div class="grid">
-          <label>分P<select id="page" disabled></select></label>
-          <label>起始时间<input id="start" value="00:00" inputmode="numeric" aria-describedby="time-help"></label>
-          <label>结束时间<input id="end" value="00:10" inputmode="numeric" aria-describedby="time-help"></label>
-          <label>帧率<input id="fps" type="number" min="{{.Media.MinFPS}}" max="{{.Limits.MaxOutputFPS}}" value="{{.Defaults.FPS}}"></label>
-          <label>分辨率<select id="resolution"><option value="360p" data-width="640" {{if eq .Defaults.Width 640}}selected{{end}}>360p</option><option value="480p" data-width="854" {{if eq .Defaults.Width 854}}selected{{end}}>480p</option><option value="720p" data-width="1280" {{if eq .Defaults.Width 1280}}selected{{end}}>720p</option><option value="custom" {{if and (ne .Defaults.Width 640) (ne .Defaults.Width 854) (ne .Defaults.Width 1280)}}selected{{end}}>自定义宽度</option></select></label>
-          <label>宽度（偶数）<input id="width" type="number" min="{{.Media.MinWidth}}" max="{{.Limits.MaxOutputWidth}}" step="2" value="{{.Defaults.Width}}"></label>
+
+    <div id="generator" class="generator-layout">
+      <section class="surface generator-card" aria-labelledby="source-title">
+        <div class="surface-header">
+          <div><p class="section-kicker">STEP 01 · SOURCE</p><h2 id="source-title">解析 B站视频</h2></div>
+          <span class="step-token">01</span>
         </div>
-        <p id="time-help" class="hint">支持 MM:SS 和 HH:MM:SS；不能跨分P，当前最长 {{.Limits.MaxClipDurationText}}（硬上限 {{.Limits.AbsoluteMaxText}}）。</p>
-        <fieldset><legend>弹幕</legend><label class="toggle"><input id="danmaku" type="checkbox" {{if .Defaults.Danmaku}}checked{{end}}> 烧录对应时间段弹幕</label>
-          <div class="grid compact"><label>透明度<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="{{.Defaults.DanmakuOpacity}}"><output id="opacity-value"></output></label><label>字号比例<input id="font-scale" type="range" min="0.5" max="2" step="0.1" value="{{.Defaults.DanmakuFontScale}}"><output id="font-value"></output></label><label>密度<input id="density" type="range" min="0.1" max="1" step="0.1" value="{{.Defaults.DanmakuDensity}}"><output id="density-value"></output></label></div>
-        </fieldset>
-        <div class="estimate"><span>预计体积</span><strong id="estimate">解析视频后估算</strong></div>
-        <div class="actions"><button id="create-button" type="submit" disabled>创建琥珀</button><span id="create-status" class="status" role="status" aria-live="polite"></span></div>
-      </form></div>
-    </section>
-    <section id="job-panel" class="panel hidden" aria-labelledby="job-title">
-      <div class="step">03</div><div class="panel-body"><h2 id="job-title">任务进度</h2><p class="mono" id="job-id"></p><div class="progress"><div id="progress-bar"></div></div><p id="job-status" role="status" aria-live="polite"></p><button id="cancel-button" class="secondary" type="button">取消任务</button><div id="result" class="result hidden"><img id="gif-preview" alt="生成的 GIF 预览"><dl id="final-params"></dl><a id="download" class="button" download>下载 GIF</a></div><pre id="job-error" class="error hidden"></pre></div>
+        <p class="surface-intro">粘贴 BV 号、完整链接、b23.tv 短链或包含链接的分享文本。</p>
+        <label for="video-input">视频来源
+          <textarea id="video-input" rows="4" maxlength="4096" placeholder="BV17x411w7KC&#10;或 https://www.bilibili.com/video/BV17x411w7KC?p=2"></textarea>
+        </label>
+        <div class="actions"><button id="resolve-button" type="button">解析视频 <span aria-hidden="true">↗</span></button><span id="resolve-status" class="form-message" role="status" aria-live="polite"></span></div>
+        <article id="video-card" class="video-card hidden" aria-live="polite">
+          <div class="cover-wrap"><img id="video-cover" alt="视频封面" loading="lazy"><span>UGC</span></div>
+          <div><p class="section-kicker">VIDEO FOUND</p><h3 id="video-title"></h3><p id="video-owner"></p><p id="video-duration"></p></div>
+        </article>
+      </section>
+
+      <section class="surface generator-card" aria-labelledby="params-title">
+        <div class="surface-header">
+          <div><p class="section-kicker">STEP 02 · CAPSULE</p><h2 id="params-title">定制琥珀参数</h2></div>
+          <span class="step-token">02</span>
+        </div>
+        <form id="job-form">
+          <div class="form-grid three">
+            <label>视频分P<select id="page" disabled><option>请先解析视频</option></select></label>
+            <label>起始时间<input id="start" value="00:00" inputmode="numeric" aria-describedby="time-help"></label>
+            <label>结束时间<input id="end" value="00:10" inputmode="numeric" aria-describedby="time-help"></label>
+            <label>输出帧率<input id="fps" type="number" min="{{.Media.MinFPS}}" max="{{.Limits.MaxOutputFPS}}" value="{{.Defaults.FPS}}"><small>越高越流畅，也越大</small></label>
+            <label>画面规格<select id="resolution"><option value="360p" data-width="640" {{if eq .Defaults.Width 640}}selected{{end}}>360p · 轻量</option><option value="480p" data-width="854" {{if eq .Defaults.Width 854}}selected{{end}}>480p · 均衡</option><option value="720p" data-width="1280" {{if eq .Defaults.Width 1280}}selected{{end}}>720p · 清晰</option><option value="custom" {{if and (ne .Defaults.Width 640) (ne .Defaults.Width 854) (ne .Defaults.Width 1280)}}selected{{end}}>自定义宽度</option></select></label>
+            <label>输出宽度<input id="width" type="number" min="{{.Media.MinWidth}}" max="{{.Limits.MaxOutputWidth}}" step="2" value="{{.Defaults.Width}}"><small>必须为偶数像素</small></label>
+          </div>
+          <p id="time-help" class="hint">支持 MM:SS 与 HH:MM:SS；片段不能跨分P，当前最长 {{.Limits.MaxClipDurationText}}。</p>
+
+          <fieldset class="danmaku-fieldset">
+            <div class="fieldset-heading"><div><legend>弹幕烧录</legend><p>仅获取并渲染片段所需的弹幕分段</p></div><label class="switch"><input id="danmaku" type="checkbox" {{if .Defaults.Danmaku}}checked{{end}}><span></span><b>启用</b></label></div>
+            <div class="range-grid">
+              <label>透明度 <output id="opacity-value"></output><input id="opacity" type="range" min="0.2" max="1" step="0.05" value="{{.Defaults.DanmakuOpacity}}"></label>
+              <label>字号比例 <output id="font-value"></output><input id="font-scale" type="range" min="0.5" max="2" step="0.1" value="{{.Defaults.DanmakuFontScale}}"></label>
+              <label>画面密度 <output id="density-value"></output><input id="density" type="range" min="0.1" max="1" step="0.1" value="{{.Defaults.DanmakuDensity}}"></label>
+            </div>
+          </fieldset>
+
+          <div class="estimate-card"><div><span>预计输出体积</span><small>最终结果会根据上限自动降级</small></div><strong id="estimate">解析视频后估算</strong></div>
+          <div class="actions"><button id="create-button" class="button-wide" type="submit" disabled>生成赛博琥珀 <span aria-hidden="true">✦</span></button><span id="create-status" class="form-message" role="status" aria-live="polite"></span></div>
+        </form>
+      </section>
+    </div>
+
+    <section id="job-panel" class="surface job-surface hidden" aria-labelledby="job-title">
+      <div class="surface-header"><div><p class="section-kicker">STEP 03 · RENDER</p><h2 id="job-title">任务进度</h2></div><span class="step-token">03</span></div>
+      <p class="job-code" id="job-id"></p>
+      <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
+      <div class="job-status-row"><p id="job-status" role="status" aria-live="polite"></p><button id="cancel-button" class="ghost small" type="button">取消任务</button></div>
+      <div id="result" class="result-grid hidden"><div class="result-preview"><img id="gif-preview" alt="生成的 GIF 预览"></div><div class="result-copy"><p class="section-kicker">CAPSULE READY</p><h3>你的赛博琥珀已封装完成</h3><dl id="final-params"></dl><a id="download" class="button primary" download>下载 GIF <span aria-hidden="true">↓</span></a></div></div>
+      <pre id="job-error" class="error-box hidden"></pre>
     </section>
   </main>
-  <footer>普通公开 UGC 视频 · GIF 无音频 · 网页任务不会向 B站发布评论</footer>
+
+  <footer class="app-footer"><span>普通公开 UGC 视频 · GIF 无音频</span><span>网页任务不会向 B站发布评论</span></footer>
 </body>
 </html>
 {{end}}
