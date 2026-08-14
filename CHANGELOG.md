@@ -6,6 +6,9 @@
 - Fixed QR sign-in feedback so loading, scanning, confirmation, expiration and API failures are always visible.
 - Clarified that browser credentials must be exported as a Cookie `Header String`, not JSON.
 - Added client-side Cookie format checks and a regression test for visible QR request failures.
+- Hardened QR login with passport request headers and `Set-Cookie` credential capture.
+- Added the `csrf_token` compatibility field to image uploads and comment submissions.
+- Recorded the user-suggested BiliGo reference without copying its unlicensed source.
 
 ## 0.1.0 - 2026-08-14
 

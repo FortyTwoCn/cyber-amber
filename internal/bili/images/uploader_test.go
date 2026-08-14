@@ -27,7 +27,7 @@ func TestUploadGIFMultipart(t *testing.T) {
 		if _, err := file.Read(magic); err != nil || string(magic) != "GIF89a" {
 			t.Fatalf("magic=%q err=%v", magic, err)
 		}
-		if header.Header.Get("Content-Type") != "image/gif" || r.FormValue("biz") != "draw" || r.FormValue("category") != "daily" || r.FormValue("csrf") != "csrf-value" {
+		if header.Header.Get("Content-Type") != "image/gif" || r.FormValue("biz") != "draw" || r.FormValue("category") != "daily" || r.FormValue("csrf") != "csrf-value" || r.FormValue("csrf_token") != "csrf-value" {
 			t.Fatalf("unexpected multipart: header=%v form=%v", header.Header, r.MultipartForm.Value)
 		}
 		fmt.Fprint(w, `{"code":0,"data":{"image_url":"//i0.hdslb.com/a.gif","image_width":"640","image_height":360,"image_size":"12.5"}}`)

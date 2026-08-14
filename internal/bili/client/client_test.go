@@ -68,3 +68,27 @@ func TestHTTPAndAPIErrorsAreClassified(t *testing.T) {
 		t.Fatalf("captcha failure misclassified: %#v", err)
 	}
 }
+
+func TestPassportRequestContextAndResponseCookies(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Referer") != serverURL(r)+"/" || r.Header.Get("Origin") != serverURL(r) {
+			t.Fatalf("unexpected passport context: referer=%q origin=%q", r.Header.Get("Referer"), r.Header.Get("Origin"))
+		}
+		http.SetCookie(w, &http.Cookie{Name: "SESSDATA", Value: "session", Path: "/"})
+		_, _ = fmt.Fprint(w, `{"code":0,"data":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	c := New(server.Client(), server.URL, server.URL, "test")
+	var out Envelope[struct {
+		OK bool `json:"ok"`
+	}]
+	cookies, err := c.GetPassportJSONWithCookies(context.Background(), "/passport", nil, &out)
+	if err != nil || !out.Data.OK || len(cookies) != 1 || cookies[0].Name != "SESSDATA" {
+		t.Fatalf("out=%#v cookies=%#v err=%v", out, cookies, err)
+	}
+}
+
+func serverURL(r *http.Request) string {
+	return "http://" + r.Host
+}

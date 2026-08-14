@@ -11,9 +11,9 @@
 | DASH | GET `/x/player/wbi/playurl` | 可选 | `cid,qn,fnval=4048,fourk,wts,w_rid`；`dash.video` 同时兼容 camel/snake 字段 | 签名/权限/风控 | 实际未登录返回 360P DASH | 刷新 WBI；按解码器和目标宽度选安全 CDN |
 | 弹幕段 | GET `/x/v2/dm/web/seg.so` | 否 | `type=1,oid=cid,pid=aid,segment_index`；Protobuf | 段不存在/结构变化 | BV17x411w7KC P1 segment 1 实际 207408 bytes | 单条不支持模式过滤，段解析失败则任务失败 |
 | @我的 | GET `/x/msgfeed/at` | Cookie | `platform=web,build=0,mobi_app=web,id,at_time`；`data.cursor/items`，可选 `at_details[].mid/uname` | 未登录 `-101` | `notifications_at_unauth_2026-08-14.json` 为实际未登录响应；`notifications_at_redacted_variant.json` 仅为 schema 回归夹具，**不是账号录制响应** | 指数退避；错误持久化；412/验证码熔断；倒序/游标循环/非末页无 cursor 明确失败 |
-| 扫码生成/轮询 | GET passport `/x/passport-login/web/qrcode/generate`、`.../poll` | 否 | `url/qrcode_key`；状态 86101/86090/86038/0 | 过期/未知状态 | 已实现严格模型；最终测试未完成扫码确认，**账号登录尚未验证** | 未知状态明确失败，不覆盖旧账号 |
-| 图片上传 | POST `/x/dynamic/feed/draw/upload_bfs` multipart | Cookie+CSRF | `file_up` GIF、`biz=draw`,`category=daily`,`csrf`; `image_url/width/height/size` | HTTP 412、账号、验证码、审核 | 仅 httptest；**未真实写入验证** | 临时错误最多 3 次；风控立即熔断 |
-| 一级评论 | POST `/x/v2/reply/add` form | Cookie+CSRF | `oid=aid,type=1,message,pictures,at_name_to_mid,plat,csrf`；根评论不含 root/parent | 验证码、敏感、关闭、重复 | payload httptest；**未真实写入验证** | 风控熔断；任务编号查重后才重试 |
+| 扫码生成/轮询 | GET passport `/x/passport-login/web/qrcode/generate`、`.../poll` | 否 | passport Referer/Origin；`url/qrcode_key`；状态 86101/86090/86038/0；成功时合并 callback URL 与 `Set-Cookie` | 过期/未知状态 | 2026-08-14 实际生成 `code=0` 且立即轮询得到 86101；passport 请求上下文和仅从 `Set-Cookie` 取得凭据有 httptest；最终扫码确认仍未执行，**账号登录尚未验证** | 未知状态明确失败，不覆盖旧账号 |
+| 图片上传 | POST `/x/dynamic/feed/draw/upload_bfs` multipart | Cookie+CSRF | `file_up` GIF、`biz=draw`,`category=daily`,`csrf`,`csrf_token`; `image_url/width/height/size` | HTTP 412、账号、验证码、审核 | multipart payload httptest；**未真实写入验证** | 临时错误最多 3 次；风控立即熔断 |
+| 一级评论 | POST `/x/v2/reply/add` form | Cookie+CSRF | `oid=aid,type=1,message,pictures,at_name_to_mid,plat,csrf,csrf_token`；根评论不含 root/parent | 验证码、敏感、关闭、重复 | payload httptest；**未真实写入验证** | 风控熔断；任务编号查重后才重试 |
 | 评论回读 | GET `/x/v2/reply/main` | 可选 | `type=1,oid,mode,next`; `replies.member.mid`、`content.{message,pictures}`、`cursor.next` | 未认证实测曾返回 `-352`；审核/不可见 | httptest；**认证读取结构尚待专用账号复验** | 找不到/缺图记 `pending_review`；账号侧找到也仅记 `published_unverified`，不宣称公开可见 |
 
 ## 通知字段解释

@@ -35,6 +35,9 @@ func TestRootImagePayloadHasNoRootOrParentAndRealAt(t *testing.T) {
 	if received.Has("root") || received.Has("parent") {
 		t.Fatalf("root/parent present: %v", received)
 	}
+	if received.Get("csrf") != "csrf" || received.Get("csrf_token") != "csrf" {
+		t.Fatalf("CSRF aliases missing: %v", received)
+	}
 	if received.Get("type") != "1" || received.Get("oid") != "170001" || !strings.Contains(received.Get("pictures"), "a.gif") || !strings.Contains(received.Get("at_name_to_mid"), "42") || !strings.Contains(received.Get("message"), "@用户") {
 		t.Fatalf("bad form: %v", received)
 	}
@@ -88,6 +91,9 @@ func TestOriginalReplyIsTextOnly(t *testing.T) {
 	publisher := New(client.New(server.Client(), server.URL, server.URL, "test"))
 	if _, err := publisher.ReplyOriginal(context.Background(), 170001, 10, 11, "请查看新主楼", "csrf"); err != nil {
 		t.Fatal(err)
+	}
+	if form.Get("csrf") != "csrf" || form.Get("csrf_token") != "csrf" {
+		t.Fatalf("CSRF aliases missing: %v", form)
 	}
 	if form.Get("root") != "10" || form.Get("parent") != "11" || form.Has("pictures") {
 		t.Fatalf("bad reply form %v", form)
