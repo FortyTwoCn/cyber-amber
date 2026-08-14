@@ -1,0 +1,65 @@
+app:
+  addr: ":8080"
+  base_url: "http://localhost:8080"
+  timezone: "Asia/Shanghai"
+  log_level: "info"
+  log_format: "json"
+paths:
+  data_dir: "/data"
+  cache_dir: "/cache"
+  temp_dir: "/tmp/cyber-amber"
+database:
+  path: "/data/cyber-amber.db"
+  busy_timeout: "5s"
+jobs:
+  worker_concurrency: 2
+  ffmpeg_concurrency: 2
+  publish_concurrency: 1
+  timeout: "10m"
+  lease_duration: "2m"
+  max_attempts: 3
+media:
+  ffmpeg_path: "ffmpeg"
+  ffprobe_path: "ffprobe"
+  font_family: "Noto Sans CJK SC"
+  max_gif_bytes: 8388608
+  min_fps: 5
+  min_width: 320
+  min_colors: 64
+defaults:
+  fps: 10
+  width: 640
+  danmaku: false
+  danmaku_opacity: 0.85
+  danmaku_font_scale: 1.0
+  danmaku_density: 1.0
+limits:
+  max_clip_duration: "15s"
+  absolute_max_clip_duration: "30s"
+  max_output_width: 1280
+  max_output_fps: 20
+  public_jobs_per_ip_hour: 10
+  bili_jobs_per_mid_day: 20
+  user_concurrent_jobs: 2
+  video_jobs_per_hour: 20
+  user_cooldown: "30s"
+  artifact_retention: "168h"
+  artifact_quota_bytes: 21474836480
+  min_free_disk_bytes: 1073741824
+bili:
+  api_base_url: "https://api.bilibili.com"
+  passport_base_url: "https://passport.bilibili.com"
+  poll_interval: "20s"
+  backfill_on_first_run: false
+  dry_run: true
+  max_publish_per_day: 50
+  reply_original_comment: true
+  user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/127 Safari/537.36 CyberAmber/1.0"
+  notification_enabled: true
+web:
+  public_enabled: true
+  trusted_proxy_cidrs: []
+security:
+  cookie_encryption_key_file: ""
+  admin_password_hash: ""
+  session_secret_file: ""

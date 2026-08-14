@@ -1,0 +1,61 @@
+services:
+  cyber-amber:
+    build: .
+    image: cyber-amber:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      APP_ADDR: ":8080"
+      APP_BASE_URL: "http://localhost:8080"
+      APP_TIMEZONE: "Asia/Shanghai"
+      TZ: "Asia/Shanghai"
+      DATA_DIR: /data
+      CACHE_DIR: /cache
+      TEMP_DIR: /tmp/cyber-amber
+      DATABASE_PATH: /data/cyber-amber.db
+      BILI_DRY_RUN: "true"
+      COOKIE_ENCRYPTION_KEY_FILE: /run/secrets/cookie_encryption_key
+      ADMIN_PASSWORD_HASH_FILE: /run/secrets/admin_password_hash
+      SESSION_SECRET_FILE: /run/secrets/session_secret
+    secrets:
+      - cookie_encryption_key
+      - admin_password_hash
+      - session_secret
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - cyber_amber_data:/data
+      - cyber_amber_cache:/cache
+    tmpfs:
+      - /tmp/cyber-amber:uid=10001,gid=10001,mode=0700,size=2g
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    stop_grace_period: 30s
+
+volumes:
+  cyber_amber_data:
+  cyber_amber_cache:
+
+secrets:
+  cookie_encryption_key:
+    file: ./secrets/cookie_encryption_key
+  admin_password_hash:
+    file: ./secrets/admin_password_hash
+  session_secret:
+    file: ./secrets/session_secret

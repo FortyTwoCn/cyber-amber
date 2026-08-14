@@ -1,0 +1,20 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - errorlint
+    - govet
+    - ineffassign
+    - misspell
+    - nilerr
+    - prealloc
+    - staticcheck
+    - unused
+formatters:
+  enable:
+    - gofmt
+    - goimports
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

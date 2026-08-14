@@ -1,0 +1,11 @@
+.git
+work
+outputs
+secrets
+data
+cache
+tmp
+*.db*
+coverage.out
+config.yaml
+.env

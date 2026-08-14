@@ -1,0 +1,58 @@
+{{define "index.html"}}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="从 B站普通视频生成经过体积优化的赛博琥珀 GIF">
+  <title>赛博琥珀自助机</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script defer src="/assets/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要内容</a>
+  <header class="topbar"><div class="brand"><span aria-hidden="true">✦</span> 赛博琥珀自助机</div><a href="/admin">管理后台</a></header>
+  <main id="main" class="shell">
+    <section class="hero">
+      <p class="eyebrow">CYBER AMBER TERMINAL / GIF CAPSULE</p>
+      <h1>把十秒钟，封存在琥珀里。</h1>
+      <p>输入 BV 号、B站视频链接或分享文本。先解析视频并选择正确分P，再创建 GIF 任务。</p>
+    </section>
+    <section class="panel" aria-labelledby="source-title">
+      <div class="step">01</div><div class="panel-body">
+      <h2 id="source-title">解析视频</h2>
+      <label for="video-input">BV 号、链接或分享文本</label>
+      <textarea id="video-input" rows="3" maxlength="4096" placeholder="例如：BV17x411w7KC 或 https://www.bilibili.com/video/BV17x411w7KC?p=2"></textarea>
+      <div class="actions"><button id="resolve-button" type="button">解析视频</button><span id="resolve-status" class="status" role="status" aria-live="polite"></span></div>
+      <article id="video-card" class="video-card hidden" aria-live="polite">
+        <img id="video-cover" alt="视频封面" loading="lazy"><div><h3 id="video-title"></h3><p id="video-owner"></p><p id="video-duration"></p></div>
+      </article></div>
+    </section>
+    <section class="panel" aria-labelledby="params-title">
+      <div class="step">02</div><div class="panel-body">
+      <h2 id="params-title">设定琥珀参数</h2>
+      <form id="job-form">
+        <div class="grid">
+          <label>分P<select id="page" disabled></select></label>
+          <label>起始时间<input id="start" value="00:00" inputmode="numeric" aria-describedby="time-help"></label>
+          <label>结束时间<input id="end" value="00:10" inputmode="numeric" aria-describedby="time-help"></label>
+          <label>帧率<input id="fps" type="number" min="{{.Media.MinFPS}}" max="{{.Limits.MaxOutputFPS}}" value="{{.Defaults.FPS}}"></label>
+          <label>分辨率<select id="resolution"><option value="360p" data-width="640" {{if eq .Defaults.Width 640}}selected{{end}}>360p</option><option value="480p" data-width="854" {{if eq .Defaults.Width 854}}selected{{end}}>480p</option><option value="720p" data-width="1280" {{if eq .Defaults.Width 1280}}selected{{end}}>720p</option><option value="custom" {{if and (ne .Defaults.Width 640) (ne .Defaults.Width 854) (ne .Defaults.Width 1280)}}selected{{end}}>自定义宽度</option></select></label>
+          <label>宽度（偶数）<input id="width" type="number" min="{{.Media.MinWidth}}" max="{{.Limits.MaxOutputWidth}}" step="2" value="{{.Defaults.Width}}"></label>
+        </div>
+        <p id="time-help" class="hint">支持 MM:SS 和 HH:MM:SS；不能跨分P，当前最长 {{.Limits.MaxClipDurationText}}（硬上限 {{.Limits.AbsoluteMaxText}}）。</p>
+        <fieldset><legend>弹幕</legend><label class="toggle"><input id="danmaku" type="checkbox" {{if .Defaults.Danmaku}}checked{{end}}> 烧录对应时间段弹幕</label>
+          <div class="grid compact"><label>透明度<input id="opacity" type="range" min="0.2" max="1" step="0.05" value="{{.Defaults.DanmakuOpacity}}"><output id="opacity-value"></output></label><label>字号比例<input id="font-scale" type="range" min="0.5" max="2" step="0.1" value="{{.Defaults.DanmakuFontScale}}"><output id="font-value"></output></label><label>密度<input id="density" type="range" min="0.1" max="1" step="0.1" value="{{.Defaults.DanmakuDensity}}"><output id="density-value"></output></label></div>
+        </fieldset>
+        <div class="estimate"><span>预计体积</span><strong id="estimate">解析视频后估算</strong></div>
+        <div class="actions"><button id="create-button" type="submit" disabled>创建琥珀</button><span id="create-status" class="status" role="status" aria-live="polite"></span></div>
+      </form></div>
+    </section>
+    <section id="job-panel" class="panel hidden" aria-labelledby="job-title">
+      <div class="step">03</div><div class="panel-body"><h2 id="job-title">任务进度</h2><p class="mono" id="job-id"></p><div class="progress"><div id="progress-bar"></div></div><p id="job-status" role="status" aria-live="polite"></p><button id="cancel-button" class="secondary" type="button">取消任务</button><div id="result" class="result hidden"><img id="gif-preview" alt="生成的 GIF 预览"><dl id="final-params"></dl><a id="download" class="button" download>下载 GIF</a></div><pre id="job-error" class="error hidden"></pre></div>
+    </section>
+  </main>
+  <footer>普通公开 UGC 视频 · GIF 无音频 · 网页任务不会向 B站发布评论</footer>
+</body>
+</html>
+{{end}}
