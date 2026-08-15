@@ -38,7 +38,7 @@ func TestRootImagePayloadHasNoRootOrParentAndRealAt(t *testing.T) {
 	if received.Get("csrf") != "csrf" || received.Get("csrf_token") != "csrf" {
 		t.Fatalf("CSRF aliases missing: %v", received)
 	}
-	if received.Get("type") != "1" || received.Get("oid") != "170001" || !strings.Contains(received.Get("pictures"), "a.gif") || !strings.Contains(received.Get("at_name_to_mid"), "42") || !strings.Contains(received.Get("message"), "@用户") {
+	if received.Get("type") != "1" || received.Get("oid") != "170001" || !strings.Contains(received.Get("pictures"), "a.gif") || !strings.Contains(received.Get("at_name_to_mid"), "42") || received.Get("message") != "@用户 你的赛博琥珀已生成\n时间：00:10–00:20\n任务：CA01TEST" {
 		t.Fatalf("bad form: %v", received)
 	}
 	if !strings.Contains(received.Get("pictures"), `"img_size":12.5`) {

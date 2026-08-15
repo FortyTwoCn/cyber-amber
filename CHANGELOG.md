@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 - 2026-08-15
+
+- Remove the decorative `✦` character from Bilibili root image comment text while preserving the real mention, time range and unique task marker.
+- Assert the complete plain-text comment message in the root-comment payload regression test.
+
 ## 0.1.6 - 2026-08-15
 
 - Give multipart media uploads a dedicated 90-second HTTP timeout instead of the 20-second API timeout.
