@@ -42,7 +42,7 @@ import (
 	"github.com/FortyTwoCn/cyber-amber/internal/worker"
 )
 
-const version = "0.1.3"
+const version = "0.1.4"
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "configuration file; missing default file is allowed")

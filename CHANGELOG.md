@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-08-15
+
+- Accept both string and numeric `item.type` values from the authenticated B站 mention feed.
+- Preserve enum names such as `reply` in a backward-compatible SQLite text column.
+- Added response-shape and database migration regression coverage for the real-account incompatibility reported by the administrator probe.
+
 ## 0.1.3 - 2026-08-15
 
 - Send the B站 message-center Referer, Origin and Accept headers when reading `/x/msgfeed/at`.

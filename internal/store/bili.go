@@ -121,7 +121,7 @@ type MentionRecord struct {
 	SenderMID                             int64
 	SenderName, SenderAvatar, Message     string
 	SubjectID, RootID, SourceID, TargetID int64
-	BusinessType                          int
+	BusinessType                          string
 	URI                                   string
 	AID                                   int64
 	BVID                                  string
@@ -133,7 +133,7 @@ func (s *Store) PendingMentions(ctx context.Context, limit int) ([]MentionRecord
 	if limit < 1 || limit > 500 {
 		limit = 100
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events WHERE status='received' ORDER BY occurred_at LIMIT ?`, limit)
+	rows, err := s.db.QueryContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type_text,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events WHERE status='received' ORDER BY occurred_at LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list pending mentions: %w", err)
 	}
@@ -164,7 +164,7 @@ func (s *Store) ListMentions(ctx context.Context, limit int) ([]MentionRecord, e
 	if limit < 1 || limit > 500 {
 		limit = 100
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events ORDER BY occurred_at DESC, id DESC LIMIT ?`, limit)
+	rows, err := s.db.QueryContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type_text,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events ORDER BY occurred_at DESC, id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list mentions: %w", err)
 	}
@@ -191,7 +191,7 @@ func (s *Store) ListMentions(ctx context.Context, limit int) ([]MentionRecord, e
 func (s *Store) GetMention(ctx context.Context, notificationID string) (MentionRecord, error) {
 	var m MentionRecord
 	var occurred string
-	err := s.db.QueryRowContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events WHERE notification_id=?`, notificationID).Scan(&m.ID, &m.NotificationID, &occurred, &m.SenderMID, &m.SenderName, &m.SenderAvatar, &m.Message, &m.SubjectID, &m.RootID, &m.SourceID, &m.TargetID, &m.BusinessType, &m.URI, &m.AID, &m.BVID, &m.RPID, &m.RootRPID, &m.RawJSON, &m.Status, &m.ErrorCode)
+	err := s.db.QueryRowContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type_text,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events WHERE notification_id=?`, notificationID).Scan(&m.ID, &m.NotificationID, &occurred, &m.SenderMID, &m.SenderName, &m.SenderAvatar, &m.Message, &m.SubjectID, &m.RootID, &m.SourceID, &m.TargetID, &m.BusinessType, &m.URI, &m.AID, &m.BVID, &m.RPID, &m.RootRPID, &m.RawJSON, &m.Status, &m.ErrorCode)
 	if errors.Is(err, sql.ErrNoRows) {
 		return m, ErrNotFound
 	}
@@ -222,7 +222,7 @@ func (s *Store) SaveMentionsAndCursor(ctx context.Context, mentions []MentionRec
 	defer tx.Rollback()
 	now := time.Now().UTC()
 	for _, m := range mentions {
-		_, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO mention_events(id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, m.ID, m.NotificationID, utcText(m.OccurredAt), m.SenderMID, m.SenderName, m.SenderAvatar, m.Message, m.SubjectID, m.RootID, m.SourceID, m.TargetID, m.BusinessType, m.URI, m.AID, m.BVID, m.RPID, m.RootRPID, m.RawJSON, m.Status, m.ErrorCode, utcText(now))
+		_, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO mention_events(id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type_text,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, m.ID, m.NotificationID, utcText(m.OccurredAt), m.SenderMID, m.SenderName, m.SenderAvatar, m.Message, m.SubjectID, m.RootID, m.SourceID, m.TargetID, m.BusinessType, m.URI, m.AID, m.BVID, m.RPID, m.RootRPID, m.RawJSON, m.Status, m.ErrorCode, utcText(now))
 		if err != nil {
 			return fmt.Errorf("save mention %s: %w", m.NotificationID, err)
 		}

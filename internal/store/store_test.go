@@ -300,7 +300,7 @@ func TestListMentionsIncludesRejectedEventsNewestFirst(t *testing.T) {
 	older := time.Now().Add(-time.Minute).UTC()
 	newer := older.Add(time.Second)
 	mentions := []MentionRecord{
-		{ID: "01MENTIONLIST000000000000001", NotificationID: "101", OccurredAt: older, SenderMID: 42, SenderName: "older", Message: "00:01-00:20", AID: 170001, RPID: 1001, RawJSON: `{}`, Status: "received"},
+		{ID: "01MENTIONLIST000000000000001", NotificationID: "101", OccurredAt: older, SenderMID: 42, SenderName: "older", Message: "00:01-00:20", AID: 170001, RPID: 1001, BusinessType: "reply", RawJSON: `{}`, Status: "received"},
 		{ID: "01MENTIONLIST000000000000002", NotificationID: "102", OccurredAt: newer, SenderMID: 43, SenderName: "newer", Message: "00:01-00:10", BVID: "BV17x411w7KC", RPID: 1002, RawJSON: `{}`, Status: "received"},
 	}
 	if err := s.SaveMentionsAndCursor(ctx, mentions, CursorRecord{Source: "bili_at", ID: 102, Time: newer.Unix(), Initialized: true}); err != nil {
@@ -313,7 +313,7 @@ func TestListMentionsIncludesRejectedEventsNewestFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(items) != 2 || items[0].NotificationID != "102" || items[1].ErrorCode != "CLIP_TOO_LONG" || items[1].Status != "invalid" {
+	if len(items) != 2 || items[0].NotificationID != "102" || items[1].BusinessType != "reply" || items[1].ErrorCode != "CLIP_TOO_LONG" || items[1].Status != "invalid" {
 		t.Fatalf("unexpected mentions %#v", items)
 	}
 }

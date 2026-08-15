@@ -70,7 +70,7 @@ func decodeEvent(item notification) (Event, error) {
 		return Event{}, errors.New("通知缺少原评论文字")
 	}
 	raw, _ := json.Marshal(item)
-	event := Event{NotificationID: strconv.FormatInt(int64(item.ID), 10), At: int64(item.AtTime), SenderMID: int64(item.User.MID), SenderName: item.User.Nickname, SenderAvatar: item.User.Avatar, Message: message, SubjectID: int64(item.Item.SubjectID), RootID: int64(item.Item.RootID), SourceID: int64(item.Item.SourceID), TargetID: int64(item.Item.TargetID), Business: item.Item.Business, BusinessType: item.Item.Type, URI: item.Item.URI, RPID: int64(item.Item.SourceID), RootRPID: int64(item.Item.RootID), Page: 1, RawJSON: string(raw)}
+	event := Event{NotificationID: strconv.FormatInt(int64(item.ID), 10), At: int64(item.AtTime), SenderMID: int64(item.User.MID), SenderName: item.User.Nickname, SenderAvatar: item.User.Avatar, Message: message, SubjectID: int64(item.Item.SubjectID), RootID: int64(item.Item.RootID), SourceID: int64(item.Item.SourceID), TargetID: int64(item.Item.TargetID), Business: item.Item.Business, BusinessType: string(item.Item.Type), URI: item.Item.URI, RPID: int64(item.Item.SourceID), RootRPID: int64(item.Item.RootID), Page: 1, RawJSON: string(raw)}
 	seenMention := make(map[int64]struct{})
 	for _, detail := range item.Item.AtDetails {
 		mid := int64(detail.MID)

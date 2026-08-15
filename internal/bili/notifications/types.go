@@ -39,6 +39,34 @@ func (i *Int64) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// ScalarString preserves Bilibili enum-like values while accepting the two
+// representations seen in message-feed responses: JSON strings and numbers.
+// Unlike Int64, it intentionally does not interpret the value because names
+// such as "reply" are valid business types.
+type ScalarString string
+
+func (s *ScalarString) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if bytes.Equal(data, []byte("null")) {
+		*s = ""
+		return nil
+	}
+	if len(data) > 0 && data[0] == '"' {
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*s = ScalarString(value)
+		return nil
+	}
+	var number json.Number
+	if err := json.Unmarshal(data, &number); err != nil {
+		return fmt.Errorf("expected string or number: %w", err)
+	}
+	*s = ScalarString(number.String())
+	return nil
+}
+
 type response struct {
 	Code    int       `json:"code"`
 	Message string    `json:"message"`
@@ -65,17 +93,17 @@ type notification struct {
 	Item notificationItem `json:"item"`
 }
 type notificationItem struct {
-	Type          int    `json:"type"`
-	Business      string `json:"business"`
-	BusinessID    Int64  `json:"business_id"`
-	SubjectID     Int64  `json:"subject_id"`
-	RootID        Int64  `json:"root_id"`
-	SourceID      Int64  `json:"source_id"`
-	TargetID      Int64  `json:"target_id"`
-	URI           string `json:"uri"`
-	Content       string `json:"content"`
-	SourceContent string `json:"source_content"`
-	Title         string `json:"title"`
+	Type          ScalarString `json:"type"`
+	Business      string       `json:"business"`
+	BusinessID    Int64        `json:"business_id"`
+	SubjectID     Int64        `json:"subject_id"`
+	RootID        Int64        `json:"root_id"`
+	SourceID      Int64        `json:"source_id"`
+	TargetID      Int64        `json:"target_id"`
+	URI           string       `json:"uri"`
+	Content       string       `json:"content"`
+	SourceContent string       `json:"source_content"`
+	Title         string       `json:"title"`
 	AtDetails     []struct {
 		MID   Int64  `json:"mid"`
 		Uname string `json:"uname"`
@@ -93,7 +121,7 @@ type Event struct {
 	SenderName, SenderAvatar, Message     string
 	SubjectID, RootID, SourceID, TargetID int64
 	Business                              string
-	BusinessType                          int
+	BusinessType                          string
 	URI                                   string
 	AID                                   int64
 	BVID                                  string
