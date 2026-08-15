@@ -34,8 +34,23 @@ func TestPollNotificationFixture(t *testing.T) {
 		t.Fatalf("events %d", len(page.Events))
 	}
 	event := page.Events[0]
-	if event.SenderMID != 420000 || event.AID != 170001 || event.BVID != "BV17x411w7KC" || event.RPID != 9000000001 || event.RootRPID != 9000000000 || event.Page != 2 || len(event.MentionedMIDs) != 2 || event.MentionedMIDs[1] != 440000 {
+	if event.SenderMID != 420000 || event.AID != 170001 || event.BVID != "BV17x411w7KC" || event.RPID != 9000000001 || event.RootRPID != 9000000000 || event.Page != 2 || event.BusinessType != "1" || len(event.MentionedMIDs) != 2 || event.MentionedMIDs[1] != 440000 {
 		t.Fatalf("unexpected %#v", event)
+	}
+}
+
+func TestPollAcceptsStringBusinessType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, `{"code":0,"data":{"cursor":{"is_end":true,"id":"8","time":"103"},"items":[{"id":"8","at_time":"103","user":{"mid":"42","nickname":"user"},"item":{"type":"reply","business":"reply","subject_id":"170001","source_id":"30","source_content":"00:01-00:10"}}]}}`)
+	}))
+	defer server.Close()
+
+	page, err := New(client.New(server.Client(), server.URL, server.URL, "test")).Poll(context.Background(), Cursor{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Events) != 1 || page.Events[0].BusinessType != "reply" {
+		t.Fatalf("unexpected events %#v", page.Events)
 	}
 }
 
