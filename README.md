@@ -2,7 +2,7 @@
 
 赛博琥珀自助机是一个面向 Linux 的 Go 服务：公开网页可以从普通 B站 UGC 视频生成指定时间段的优化 GIF；配置机器人账号后，服务可以持久化轮询“@我的”，解析评论命令，生成 GIF，并在同一视频下发布一条真正 `@` 发起者的一级带图评论。
 
-项目当前版本为 `0.1.1`，module 为 `github.com/FortyTwoCn/cyber-amber`，使用 Go 1.26（开发与 CI 固定为 Go 1.26.6）。项目采用 GPL-3.0-only，原因与参考范围见 [docs/REFERENCES.md](docs/REFERENCES.md)。
+项目当前版本为 `0.1.2`，module 为 `github.com/FortyTwoCn/cyber-amber`，使用 Go 1.26（开发与 CI 固定为 Go 1.26.6）。项目采用 GPL-3.0-only，原因与参考范围见 [docs/REFERENCES.md](docs/REFERENCES.md)。
 
 ## 能力
 

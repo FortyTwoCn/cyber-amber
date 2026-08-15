@@ -121,6 +121,12 @@
           <pre id="job-detail" class="status-box hidden" aria-live="polite"></pre>
         </section>
 
+        <section class="surface span-2" aria-labelledby="mentions-title">
+          <div class="surface-header"><div><p class="section-kicker">MENTION INBOX</p><h2 id="mentions-title">最近 @ 通知</h2></div><button id="refresh-mentions" class="ghost small">刷新通知</button></div>
+          <p class="hint">这里会显示已入队、命令错误、限流和去重结果。DRY RUN 只禁止写回 B站，不会隐藏通知。</p>
+          <div class="table-wrap"><table><thead><tr><th>时间</th><th>发起者</th><th>评论内容</th><th>视频</th><th>处理状态</th><th>原因</th></tr></thead><tbody id="mentions-body"></tbody></table></div>
+        </section>
+
         <section class="surface" aria-labelledby="abuse-title">
           <div class="surface-header"><div><p class="section-kicker">ABUSE CONTROL</p><h2 id="abuse-title">黑名单</h2></div></div>
           <form id="block-form" class="form-grid compact-form">

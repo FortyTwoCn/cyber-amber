@@ -157,6 +157,37 @@ func (s *Store) PendingMentions(ctx context.Context, limit int) ([]MentionRecord
 	return result, nil
 }
 
+// ListMentions returns recent mention deliveries for administrator diagnostics.
+// Raw notification JSON is deliberately kept in the store and is not exposed by
+// the HTTP handler.
+func (s *Store) ListMentions(ctx context.Context, limit int) ([]MentionRecord, error) {
+	if limit < 1 || limit > 500 {
+		limit = 100
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT id,notification_id,occurred_at,sender_mid,sender_name,sender_avatar,message,subject_id,root_id,source_id,target_id,business_type,uri,aid,bvid,rpid,root_rpid,raw_json,status,error_code FROM mention_events ORDER BY occurred_at DESC, id DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list mentions: %w", err)
+	}
+	defer rows.Close()
+	result := make([]MentionRecord, 0, limit)
+	for rows.Next() {
+		var m MentionRecord
+		var occurred string
+		if err := rows.Scan(&m.ID, &m.NotificationID, &occurred, &m.SenderMID, &m.SenderName, &m.SenderAvatar, &m.Message, &m.SubjectID, &m.RootID, &m.SourceID, &m.TargetID, &m.BusinessType, &m.URI, &m.AID, &m.BVID, &m.RPID, &m.RootRPID, &m.RawJSON, &m.Status, &m.ErrorCode); err != nil {
+			return nil, fmt.Errorf("scan mention: %w", err)
+		}
+		m.OccurredAt, err = parseTime(occurred)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("mention rows: %w", err)
+	}
+	return result, nil
+}
+
 func (s *Store) GetMention(ctx context.Context, notificationID string) (MentionRecord, error) {
 	var m MentionRecord
 	var occurred string

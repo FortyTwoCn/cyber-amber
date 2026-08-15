@@ -20,6 +20,7 @@ type Poller struct {
 	maxPages int
 	onError  func()
 	logger   *slog.Logger
+	wake     chan struct{}
 }
 
 func (p *Poller) SetErrorObserver(observer func()) { p.onError = observer }
@@ -30,8 +31,19 @@ func (p *Poller) SetLogger(logger *slog.Logger) {
 }
 
 func NewPoller(source *Source, store *store.Store, interval time.Duration, backfill bool) *Poller {
-	return &Poller{source: source, store: store, interval: interval, backfill: backfill, maxPages: 20, logger: slog.Default()}
+	return &Poller{source: source, store: store, interval: interval, backfill: backfill, maxPages: 20, logger: slog.Default(), wake: make(chan struct{}, 1)}
 }
+
+// Wake requests an immediate poll after an account login or an administrator
+// resume. The buffered signal also covers the small window before Run starts
+// waiting, and repeated requests are intentionally coalesced.
+func (p *Poller) Wake() {
+	select {
+	case p.wake <- struct{}{}:
+	default:
+	}
+}
+
 func (p *Poller) RunOnce(ctx context.Context) error {
 	cursorRecord, err := p.store.LoadCursor(ctx, "bili_at")
 	if err != nil {
@@ -96,6 +108,9 @@ func (p *Poller) Run(ctx context.Context) {
 		case <-ctx.Done():
 			timer.Stop()
 			return
+		case <-p.wake:
+			timer.Stop()
+			backoff = p.interval
 		case <-timer.C:
 		}
 	}
