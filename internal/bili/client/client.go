@@ -82,6 +82,13 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, out
 	return c.doJSON(ctx, http.MethodGet, c.APIURL(path, query), nil, out, true)
 }
 
+// GetPublicJSON deliberately omits the configured account Cookie. It is used
+// for visibility checks where an account-side response is insufficient proof
+// that other users can see a newly published comment.
+func (c *Client) GetPublicJSON(ctx context.Context, path string, query url.Values, out any) error {
+	return c.doJSON(ctx, http.MethodGet, c.APIURL(path, query), nil, out, false)
+}
+
 // GetJSONWithPageContext performs an authenticated API request using the
 // browser page context expected by endpoints that are scoped to a Bilibili
 // sub-site, such as the message center.

@@ -25,7 +25,7 @@ func TestRootImagePayloadHasNoRootOrParentAndRealAt(t *testing.T) {
 	}))
 	defer server.Close()
 	publisher := New(client.New(server.Client(), server.URL, server.URL, "test"))
-	got, err := publisher.PublishRootImageComment(context.Background(), PublishRequest{AID: 170001, UserMID: 42, Username: "用户", TaskID: "CA01TEST", Start: 10 * time.Second, End: 20 * time.Second, Image: images.UploadedImage{URL: "https://i0.hdslb.com/a.gif", Width: 640, Height: 360, SizeKB: 123}, CSRF: "csrf"})
+	got, err := publisher.PublishRootImageComment(context.Background(), PublishRequest{AID: 170001, UserMID: 42, Username: "用户", TaskID: "CA01TEST", Start: 10 * time.Second, End: 20 * time.Second, Image: images.UploadedImage{URL: "https://i0.hdslb.com/a.gif", Width: 640, Height: 360, Size: 12.5}, CSRF: "csrf"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,6 +40,9 @@ func TestRootImagePayloadHasNoRootOrParentAndRealAt(t *testing.T) {
 	}
 	if received.Get("type") != "1" || received.Get("oid") != "170001" || !strings.Contains(received.Get("pictures"), "a.gif") || !strings.Contains(received.Get("at_name_to_mid"), "42") || !strings.Contains(received.Get("message"), "@用户") {
 		t.Fatalf("bad form: %v", received)
+	}
+	if !strings.Contains(received.Get("pictures"), `"img_size":12.5`) {
+		t.Fatalf("upload response img_size was not preserved: %s", received.Get("pictures"))
 	}
 }
 
@@ -97,6 +100,51 @@ func TestOriginalReplyIsTextOnly(t *testing.T) {
 	}
 	if form.Get("root") != "10" || form.Get("parent") != "11" || form.Has("pictures") {
 		t.Fatalf("bad reply form %v", form)
+	}
+}
+
+func TestVerifyRootImageCommentUsesPublicDetail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/x/v2/reply/detail" || r.URL.Query().Get("root") != "55" {
+			t.Fatalf("unexpected request %s", r.URL.String())
+		}
+		if cookie := r.Header.Get("Cookie"); cookie != "" {
+			t.Fatalf("visitor verification leaked account cookie %q", cookie)
+		}
+		fmt.Fprint(w, `{"code":0,"data":{"root":{"rpid":"55","member":{"mid":"42"},"content":{"message":"完成\n任务：CA01TEST","pictures":[{"img_src":"//i0.hdslb.com/a.gif"}]}}}}`)
+	}))
+	defer server.Close()
+	publisherClient := client.New(server.Client(), server.URL, server.URL, "test")
+	publisherClient.SetCookie("SESSDATA=secret")
+	publisher := New(publisherClient)
+	got, err := publisher.VerifyRootImageComment(context.Background(), 170001, 55, "CA01TEST", 42, "https://i0.hdslb.com/a.gif")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.Status != Published || got.RPID != 55 || got.ImageURL != "https://i0.hdslb.com/a.gif" {
+		t.Fatalf("unexpected %#v", got)
+	}
+}
+
+func TestVerifyRootImageCommentDetectsDeletion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/x/v2/reply/detail":
+			fmt.Fprint(w, `{"code":12006,"message":"没有该评论"}`)
+		case "/x/v2/reply/reply":
+			fmt.Fprint(w, `{"code":12022,"message":"已经被删除了"}`)
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	publisher := New(client.New(server.Client(), server.URL, server.URL, "test"))
+	got, err := publisher.VerifyRootImageComment(context.Background(), 170001, 55, "CA01TEST", 42, "https://i0.hdslb.com/a.gif")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.Status != Deleted || got.RPID != 55 {
+		t.Fatalf("unexpected %#v", got)
 	}
 }
 

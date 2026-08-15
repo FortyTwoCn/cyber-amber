@@ -45,3 +45,12 @@
 - 许可证：AGPL-3.0
 
 只用于复核仍在使用的 `/x/msgfeed/at` 路径、分页参数以及消息中心 Referer 请求上下文；没有复制其 TypeScript 实现或响应展示逻辑。项目自身已采用 GPL-3.0-only。
+
+## PiliPlus comment-image flow
+
+- URL: https://github.com/bggRGjQaUbCoE/PiliPlus
+- 实际检查 commit: `3a7d4614743cb7289293d6c47e13d96aec544f18`
+- 检查日期：2026-08-15
+- 许可证：GPL-3.0
+
+检查了 `lib/http/video.dart`、`lib/http/msg.dart`、`lib/models_new/upload_bfs/data.dart`、`lib/pages/video/reply_new/view.dart` 与 `lib/pages/common/publish/common_rich_text_pub_page.dart`，用于复核当前评论图片流程中的 `biz=new_dyn`、上传响应 `img_size` 以及 `pictures` 原值回传行为。没有复制其 Dart UI 或实现代码；本项目以独立 Go 模型、错误处理和回归测试实现相同的接口约束。

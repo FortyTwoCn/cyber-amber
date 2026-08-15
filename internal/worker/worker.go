@@ -583,25 +583,31 @@ func (m *Manager) publish(ctx context.Context, workerID string, job *domain.Job,
 	if err := m.stage(ctx, job.ID, workerID, domain.JobVerifying, 96); err != nil {
 		return err
 	}
-	verified, verifyErr := m.publisher.FindTaskMarker(ctx, job.Aid, marker, botMID)
+	verified, verifyErr := m.verifyRootImageComment(ctx, job.Aid, published.RPID, marker, botMID, uploaded.URL)
 	status := comments.PublishedUnverified
 	var verifiedAt *time.Time
-	if verifyErr == nil && verified == nil {
-		status = comments.PendingReview
-	} else if verifyErr == nil && verified != nil {
-		if verified.RPID == published.RPID && verified.ImageURL == uploaded.URL {
-			status = verified.Status
-		} else {
-			status = comments.PendingReview
-		}
+	if verifyErr == nil && verified != nil {
+		status = verified.Status
 		now := time.Now().UTC()
 		verifiedAt = &now
+	} else if verifyErr == nil {
+		status = comments.PendingReview
 	}
 	if verifyErr != nil {
 		m.logger.Warn("published comment could not be verified", "job_id", job.ID, "error", client.Redact(verifyErr.Error()))
 	}
 	if err := m.store.SavePublished(ctx, store.PublishedRecord{JobID: job.ID, AID: job.Aid, RPID: published.RPID, ImageURL: uploaded.URL, TaskMarker: marker, Status: status, VerifiedAt: verifiedAt, ResponseJSON: published.RawJSON}); err != nil {
 		return err
+	}
+	if status == comments.Deleted {
+		until := time.Now().Add(30 * time.Minute)
+		if err := m.store.SetBotPaused(ctx, true, "BILI_COMMENT_DELETED", &until); err != nil {
+			return err
+		}
+		if m.metrics != nil {
+			m.metrics.BiliPublish.WithLabelValues(status).Inc()
+		}
+		return errors.New("BILI_COMMENT_DELETED: B站已接受发布请求，但随后删除了带图评论；机器人写操作已暂停 30 分钟")
 	}
 	if m.cfg.ReplyOriginal {
 		m.replyOriginal(ctx, job, marker, session.CSRF())
@@ -610,6 +616,45 @@ func (m *Manager) publish(ctx context.Context, workerID string, job *domain.Job,
 		m.metrics.BiliPublish.WithLabelValues(status).Inc()
 	}
 	return m.stage(ctx, job.ID, workerID, domain.JobSucceeded, 100)
+}
+
+func (m *Manager) verifyRootImageComment(ctx context.Context, aid, rpid int64, marker string, botMID int64, imageURL string) (*comments.PublishedComment, error) {
+	var last *comments.PublishedComment
+	var lastErr error
+	for attempt, delay := range []time.Duration{0, 2 * time.Second, 5 * time.Second} {
+		if delay > 0 {
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return last, ctx.Err()
+			case <-timer.C:
+			}
+		}
+		verified, err := m.publisher.VerifyRootImageComment(ctx, aid, rpid, marker, botMID, imageURL)
+		if err != nil {
+			if last == nil {
+				lastErr = err
+			}
+			continue
+		}
+		last, lastErr = verified, nil
+		if verified != nil && verified.Status == comments.Published {
+			return verified, nil
+		}
+		m.logger.Info("published comment not publicly visible yet", "rpid", rpid, "attempt", attempt+1, "status", verifiedStatus(verified))
+	}
+	if last != nil {
+		return last, nil
+	}
+	return nil, lastErr
+}
+
+func verifiedStatus(comment *comments.PublishedComment) string {
+	if comment == nil {
+		return "missing"
+	}
+	return comment.Status
 }
 
 func (m *Manager) observeJob(job *domain.Job, status string, started time.Time) {
