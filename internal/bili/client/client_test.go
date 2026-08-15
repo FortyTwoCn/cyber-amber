@@ -89,6 +89,28 @@ func TestPassportRequestContextAndResponseCookies(t *testing.T) {
 	}
 }
 
+func TestAuthenticatedPageRequestContext(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Referer") != "https://message.bilibili.com/" || r.Header.Get("Origin") != "https://message.bilibili.com" {
+			t.Fatalf("unexpected page context: referer=%q origin=%q", r.Header.Get("Referer"), r.Header.Get("Origin"))
+		}
+		if r.Header.Get("Cookie") != "SESSDATA=session" || r.Header.Get("Accept") != "application/json, text/plain, */*" {
+			t.Fatalf("missing authenticated message headers: cookie=%q accept=%q", r.Header.Get("Cookie"), r.Header.Get("Accept"))
+		}
+		_, _ = fmt.Fprint(w, `{"code":0,"data":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	c := New(server.Client(), server.URL, server.URL, "test")
+	c.SetCookie("SESSDATA=session")
+	var out Envelope[struct {
+		OK bool `json:"ok"`
+	}]
+	if err := c.GetJSONWithPageContext(context.Background(), "/message", nil, "https://message.bilibili.com/", "https://message.bilibili.com", &out); err != nil || !out.Data.OK {
+		t.Fatalf("out=%#v err=%v", out, err)
+	}
+}
+
 func serverURL(r *http.Request) string {
 	return "http://" + r.Host
 }

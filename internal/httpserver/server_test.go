@@ -311,3 +311,34 @@ func TestAdminOperationalSettingsPersistAfterValidation(t *testing.T) {
 		t.Fatalf("invalid settings %d %s", invalidResult.Code, invalidResult.Body.String())
 	}
 }
+
+func TestAdminCanRunImmediateMentionPoll(t *testing.T) {
+	server, database := testServer(t, true)
+	server.SetMentionPoll(func(ctx context.Context) error {
+		return database.SaveMentionsAndCursor(ctx, nil, store.CursorRecord{Source: "bili_at", ID: 88, Time: 99, Initialized: true})
+	})
+	handler := server.Handler()
+	login := httptest.NewRequest(http.MethodPost, "/api/v1/admin/login", strings.NewReader(`{"password":"a-long-admin-password"}`))
+	login.RemoteAddr = "127.0.0.1:1234"
+	loginResult := httptest.NewRecorder()
+	handler.ServeHTTP(loginResult, login)
+	if loginResult.Code != http.StatusOK {
+		t.Fatalf("login %d %s", loginResult.Code, loginResult.Body.String())
+	}
+	var loginBody struct {
+		CSRF string `json:"csrf_token"`
+	}
+	if err := json.Unmarshal(loginResult.Body.Bytes(), &loginBody); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/bot/poll", strings.NewReader(`{}`))
+	request.Header.Set("X-CSRF-Token", loginBody.CSRF)
+	for _, cookie := range loginResult.Result().Cookies() {
+		request.AddCookie(cookie)
+	}
+	result := httptest.NewRecorder()
+	handler.ServeHTTP(result, request)
+	if result.Code != http.StatusOK || !strings.Contains(result.Body.String(), `"polled":true`) || !strings.Contains(result.Body.String(), `"ID":88`) {
+		t.Fatalf("poll %d %s", result.Code, result.Body.String())
+	}
+}

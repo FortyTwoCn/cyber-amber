@@ -77,9 +77,11 @@
           <div class="actions account-actions">
             <button id="qr-button"><span aria-hidden="true">▦</span> 扫码登录</button>
             <button id="check-account" class="secondary">检查会话</button>
+            <button id="poll-mentions" class="secondary">立即轮询 @</button>
             <button id="pause-button" class="danger">暂停机器人</button>
             <button id="resume-button" class="secondary">恢复机器人</button>
           </div>
+          <p id="mention-poll-status" class="form-message" role="status"></p>
 
           <div id="qr-box" class="auth-method hidden" aria-live="polite">
             <div class="qr-frame"><div id="qr-placeholder" class="qr-placeholder"><span aria-hidden="true">▦</span><small>正在请求二维码</small></div><img id="qr-image" class="hidden" alt="B站扫码登录二维码"></div>
