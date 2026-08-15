@@ -75,6 +75,7 @@ type Server struct {
 	templates     *template.Template
 	adminSessions *security.SessionManager
 	secureCookie  bool
+	mentionWake   func()
 }
 
 func New(cfg config.Config, store *store.Store, resolver video.VideoResolver, accounts *auth.Service, metrics *observability.Metrics, ready *Readiness, logger *slog.Logger) (*Server, error) {
@@ -93,6 +94,10 @@ func New(cfg config.Config, store *store.Store, resolver video.VideoResolver, ac
 	}
 	return server, nil
 }
+
+// SetMentionPollWake connects successful account operations to the durable
+// mention poller without coupling HTTP handlers to its concrete type.
+func (s *Server) SetMentionPollWake(wake func()) { s.mentionWake = wake }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -123,6 +128,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/admin/account/qrcode/{id}", s.requireAdmin(s.adminPollQR))
 	mux.HandleFunc("POST /api/v1/admin/bot/pause", s.requireAdminCSRF(s.adminPause))
 	mux.HandleFunc("POST /api/v1/admin/bot/resume", s.requireAdminCSRF(s.adminResume))
+	mux.HandleFunc("GET /api/v1/admin/mentions", s.requireAdmin(s.adminMentions))
 	mux.HandleFunc("GET /api/v1/admin/jobs", s.requireAdmin(s.adminJobs))
 	mux.HandleFunc("GET /api/v1/admin/jobs/{id}", s.requireAdmin(s.adminJobDetail))
 	mux.HandleFunc("POST /api/v1/admin/jobs/{id}/retry", s.requireAdminCSRF(s.adminRetry))

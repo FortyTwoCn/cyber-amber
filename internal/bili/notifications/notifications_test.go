@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -64,6 +65,58 @@ func TestFirstRunWithoutBackfillReadsOnlyNewestPage(t *testing.T) {
 	cursor, err := database.LoadCursor(context.Background(), "bili_at")
 	if err != nil || !cursor.Initialized || cursor.ID != 30 || cursor.Time != 103 {
 		t.Fatalf("cursor=%#v err=%v", cursor, err)
+	}
+}
+
+func TestWakeInterruptsAuthenticationBackoff(t *testing.T) {
+	var calls atomic.Int32
+	firstCall := make(chan struct{})
+	secondCall := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		switch calls.Add(1) {
+		case 1:
+			close(firstCall)
+			_, _ = fmt.Fprint(w, `{"code":-101,"message":"账号未登录"}`)
+		default:
+			select {
+			case <-secondCall:
+			default:
+				close(secondCall)
+			}
+			_, _ = fmt.Fprint(w, `{"code":0,"data":{"cursor":{"is_end":true,"id":0,"time":0},"items":[]}}`)
+		}
+	}))
+	defer server.Close()
+	database, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "wake.db"), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = database.Close() })
+	poller := NewPoller(New(client.New(server.Client(), server.URL, server.URL, "test")), database, time.Hour, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		poller.Run(ctx)
+		close(done)
+	}()
+	select {
+	case <-firstCall:
+	case <-time.After(2 * time.Second):
+		cancel()
+		t.Fatal("initial notification poll did not run")
+	}
+	poller.Wake()
+	select {
+	case <-secondCall:
+	case <-time.After(2 * time.Second):
+		cancel()
+		t.Fatal("wake did not interrupt authentication backoff")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("poller did not stop")
 	}
 }
 

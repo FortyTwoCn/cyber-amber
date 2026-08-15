@@ -42,7 +42,7 @@ import (
 	"github.com/FortyTwoCn/cyber-amber/internal/worker"
 )
 
-const version = "0.1.1"
+const version = "0.1.2"
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "configuration file; missing default file is allowed")
@@ -235,6 +235,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		poller := notifications.NewPoller(notifications.New(biliClient), database, cfg.Bili.PollInterval, cfg.Bili.BackfillOnFirstRun)
 		poller.SetErrorObserver(metrics.NotificationErrors.Inc)
 		poller.SetLogger(logger)
+		server.SetMentionPollWake(poller.Wake)
 		startBackground(func() { poller.Run(appCtx) })
 	}
 	serverErrors := make(chan error, 1)

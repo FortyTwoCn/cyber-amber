@@ -156,7 +156,7 @@ func TestAdminQRFeedbackIsVisibleBeforeRequest(t *testing.T) {
 	if page.Code != http.StatusOK {
 		t.Fatalf("admin page %d %s", page.Code, page.Body.String())
 	}
-	if !strings.Contains(page.Body.String(), "Header String") || !strings.Contains(page.Body.String(), `id="qr-status"`) {
+	if !strings.Contains(page.Body.String(), "Header String") || !strings.Contains(page.Body.String(), `id="qr-status"`) || !strings.Contains(page.Body.String(), `id="mentions-body"`) {
 		t.Fatalf("admin page does not explain the cookie format or expose QR status feedback: %s", page.Body.String())
 	}
 
@@ -170,6 +170,9 @@ func TestAdminQRFeedbackIsVisibleBeforeRequest(t *testing.T) {
 	requestQR := strings.Index(script, `await api("/api/v1/admin/account/qrcode"`)
 	if showQR < 0 || requestQR < 0 || showQR > requestQR {
 		t.Fatal("QR feedback container is not shown before the network request")
+	}
+	if !strings.Contains(script, `api("/api/v1/admin/mentions")`) || !strings.Contains(script, "CLIP_TOO_LONG") {
+		t.Fatal("admin console does not expose mention ingestion diagnostics")
 	}
 }
 

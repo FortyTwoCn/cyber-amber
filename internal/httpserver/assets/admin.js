@@ -141,7 +141,7 @@ async function refresh() {
   adminTimezone = body.timezone || adminTimezone;
   $("account-status").textContent = JSON.stringify(body, null, 2);
   updateOverview(body);
-  await Promise.all([jobs(), blocked(), audit(), settings()]);
+  await Promise.all([jobs(), mentions(), blocked(), audit(), settings()]);
   return body;
 }
 
@@ -197,6 +197,43 @@ async function jobs() {
     return row;
   });
   $("jobs-body").replaceChildren(...(rows.length ? rows : [emptyRow(6, "暂无任务")]));
+}
+
+const mentionStatusLabels = {
+  received: "待处理",
+  enqueued: "已入队",
+  invalid: "命令无效",
+  ignored_self: "忽略自身",
+  blocked: "黑名单",
+  rate_limited: "已限流",
+  deduplicated: "已去重",
+};
+
+const mentionErrorLabels = {
+  CLIP_TOO_LONG: "截取时长超过 max_clip_duration",
+  INVALID_TIME_RANGE: "时间范围格式无效",
+  INVALID_PARAMETER: "参数不在允许范围",
+  INVALID_COMMAND: "无法解析命令",
+  USER_BLOCKED: "用户在黑名单中",
+  USER_CONCURRENCY_LIMIT: "用户并发任务已达上限",
+  MID_DAILY_LIMIT: "用户每日任务已达上限",
+  USER_COOLDOWN: "用户仍在冷却时间内",
+  VIDEO_RATE_LIMIT: "该视频小时任务已达上限",
+};
+
+async function mentions() {
+  const body = await api("/api/v1/admin/mentions");
+  const rows = body.mentions.map((mention) => {
+    const row = document.createElement("tr");
+    const sender = mention.sender_name ? `${mention.sender_name} · ${mention.sender_mid}` : String(mention.sender_mid);
+    const video = mention.bvid || (mention.aid ? `av${mention.aid}` : "-");
+    const status = mentionStatusLabels[mention.status] || mention.status;
+    const reason = mentionErrorLabels[mention.error_code] || mention.error_code || "-";
+    [formatTime(mention.occurred_at), sender, mention.message, video, status, reason].forEach((value) => row.append(cell(value)));
+    row.title = `通知 ${mention.notification_id} · 评论 ${mention.rpid}`;
+    return row;
+  });
+  $("mentions-body").replaceChildren(...(rows.length ? rows : [emptyRow(6, "尚未收到新的 @ 通知")]));
 }
 
 async function blocked() {
@@ -263,6 +300,10 @@ $("block-form").addEventListener("submit", async (event) => {
 
 $("refresh-jobs").addEventListener("click", async () => {
   try { await jobs(); } catch (error) { $("job-detail").textContent = error.message; $("job-detail").classList.remove("hidden"); }
+});
+
+$("refresh-mentions").addEventListener("click", async () => {
+  try { await mentions(); } catch (error) { window.alert(error.message); }
 });
 
 $("refresh-audit").addEventListener("click", async () => {

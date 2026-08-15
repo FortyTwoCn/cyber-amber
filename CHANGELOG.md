@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 2026-08-15
+
+- Added a recent mention inbox to the administration console, including ingestion status and rejection codes such as `CLIP_TOO_LONG`.
+- Added an authenticated read-only admin API for mention diagnostics without exposing raw notification payloads.
+- Fixed the first-login notification race by waking the mention poller immediately after QR login, Cookie import, or bot resume instead of waiting for an existing authentication backoff.
+- Added regression tests for persisted rejected mentions and poller wake-up behavior.
+
 ## 0.1.1 - 2026-08-14
 
 - Redesigned the public generator and administration console with a modern, responsive cyber-amber interface.

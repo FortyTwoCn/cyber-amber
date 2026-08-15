@@ -192,6 +192,9 @@ func (s *Server) adminImportCookie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.ready.Set("bili_account", nil)
+	if s.mentionWake != nil {
+		s.mentionWake()
+	}
 	s.audit(r, "account_cookie_import", "bili_account")
 	writeJSON(w, http.StatusOK, map[string]bool{"imported": true})
 }
@@ -216,6 +219,9 @@ func (s *Server) adminPollQR(w http.ResponseWriter, r *http.Request) {
 	}
 	if result.State == "confirmed" {
 		s.ready.Set("bili_account", nil)
+		if s.mentionWake != nil {
+			s.mentionWake()
+		}
 	}
 	writeJSON(w, http.StatusOK, result)
 }
@@ -246,6 +252,9 @@ func (s *Server) adminResume(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "恢复机器人失败")
 		return
 	}
+	if s.mentionWake != nil {
+		s.mentionWake()
+	}
 	s.audit(r, "bot_resume", "bot")
 	writeJSON(w, http.StatusOK, map[string]bool{"paused": false})
 }
@@ -260,6 +269,42 @@ func (s *Server) adminJobs(w http.ResponseWriter, r *http.Request) {
 		views = append(views, job.View())
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"jobs": views})
+}
+
+func (s *Server) adminMentions(w http.ResponseWriter, r *http.Request) {
+	mentions, err := s.store.ListMentions(r.Context(), 100)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "读取 @ 通知失败")
+		return
+	}
+	type mentionView struct {
+		NotificationID string    `json:"notification_id"`
+		OccurredAt     time.Time `json:"occurred_at"`
+		SenderMID      int64     `json:"sender_mid"`
+		SenderName     string    `json:"sender_name"`
+		Message        string    `json:"message"`
+		AID            int64     `json:"aid"`
+		BVID           string    `json:"bvid,omitempty"`
+		RPID           int64     `json:"rpid"`
+		Status         string    `json:"status"`
+		ErrorCode      string    `json:"error_code,omitempty"`
+	}
+	views := make([]mentionView, 0, len(mentions))
+	for _, mention := range mentions {
+		views = append(views, mentionView{
+			NotificationID: mention.NotificationID,
+			OccurredAt:     mention.OccurredAt,
+			SenderMID:      mention.SenderMID,
+			SenderName:     mention.SenderName,
+			Message:        mention.Message,
+			AID:            mention.AID,
+			BVID:           mention.BVID,
+			RPID:           mention.RPID,
+			Status:         mention.Status,
+			ErrorCode:      mention.ErrorCode,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"mentions": views})
 }
 
 func (s *Server) adminJobDetail(w http.ResponseWriter, r *http.Request) {
