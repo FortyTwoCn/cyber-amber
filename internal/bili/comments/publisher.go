@@ -56,7 +56,7 @@ func (p *HTTPPublisher) PublishRootImageComment(ctx context.Context, request Pub
 	if request.AID <= 0 || request.UserMID <= 0 || request.Username == "" || len(request.Username) > 128 || strings.ContainsAny(request.Username, "\r\n") || request.TaskID == "" || request.End <= request.Start || !biliinput.IsAllowedImageURL(request.Image.URL) || request.CSRF == "" {
 		return nil, errors.New("invalid root image comment request")
 	}
-	message := fmt.Sprintf("@%s 你的赛博琥珀已生成 ✦\n时间：%s–%s\n任务：%s", request.Username, clock(request.Start), clock(request.End), request.TaskID)
+	message := fmt.Sprintf("@%s 你的赛博琥珀已生成\n时间：%s–%s\n任务：%s", request.Username, clock(request.Start), clock(request.End), request.TaskID)
 	atMap, _ := json.Marshal(map[string]string{request.Username: strconv.FormatInt(request.UserMID, 10)})
 	type picturePayload struct {
 		Source string  `json:"img_src"`
