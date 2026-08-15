@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/FortyTwoCn/cyber-amber/internal/bili/client"
@@ -21,6 +22,7 @@ type Poller struct {
 	onError  func()
 	logger   *slog.Logger
 	wake     chan struct{}
+	runMu    sync.Mutex
 }
 
 func (p *Poller) SetErrorObserver(observer func()) { p.onError = observer }
@@ -45,6 +47,8 @@ func (p *Poller) Wake() {
 }
 
 func (p *Poller) RunOnce(ctx context.Context) error {
+	p.runMu.Lock()
+	defer p.runMu.Unlock()
 	cursorRecord, err := p.store.LoadCursor(ctx, "bili_at")
 	if err != nil {
 		return err
@@ -70,7 +74,13 @@ func (p *Poller) RunOnce(ctx context.Context) error {
 	for _, event := range events {
 		records = append(records, store.MentionRecord{ID: ulid.Make().String(), NotificationID: event.NotificationID, OccurredAt: time.Unix(event.At, 0).UTC(), SenderMID: event.SenderMID, SenderName: event.SenderName, SenderAvatar: event.SenderAvatar, Message: event.Message, SubjectID: event.SubjectID, RootID: event.RootID, SourceID: event.SourceID, TargetID: event.TargetID, BusinessType: event.BusinessType, URI: event.URI, AID: event.AID, BVID: event.BVID, RPID: event.RPID, RootRPID: event.RootRPID, RawJSON: event.RawJSON, Status: "received"})
 	}
-	return p.store.SaveMentionsAndCursor(ctx, records, store.CursorRecord{Source: "bili_at", ID: newest.ID, Time: newest.Time, Initialized: true})
+	if err := p.store.SaveMentionsAndCursor(ctx, records, store.CursorRecord{Source: "bili_at", ID: newest.ID, Time: newest.Time, Initialized: true}); err != nil {
+		return err
+	}
+	if len(records) > 0 {
+		p.logger.Info("Bili mention notifications persisted", "count", len(records), "cursor_id", newest.ID, "cursor_time", newest.Time)
+	}
+	return nil
 }
 func (p *Poller) Run(ctx context.Context) {
 	backoff := p.interval

@@ -82,6 +82,27 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, out
 	return c.doJSON(ctx, http.MethodGet, c.APIURL(path, query), nil, out, true)
 }
 
+// GetJSONWithPageContext performs an authenticated API request using the
+// browser page context expected by endpoints that are scoped to a Bilibili
+// sub-site, such as the message center.
+func (c *Client) GetJSONWithPageContext(ctx context.Context, path string, query url.Values, referer, origin string, out any) error {
+	req, err := c.newRequest(ctx, http.MethodGet, c.APIURL(path, query), nil, true)
+	if err != nil {
+		return err
+	}
+	if referer != "" {
+		req.Header.Set("Referer", referer)
+	}
+	if origin == "" {
+		req.Header.Del("Origin")
+	} else {
+		req.Header.Set("Origin", origin)
+	}
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	_, err = c.doJSONRequest(req, out)
+	return err
+}
+
 func (c *Client) GetPassportJSON(ctx context.Context, path string, query url.Values, out any) error {
 	_, err := c.GetPassportJSONWithCookies(ctx, path, query, out)
 	return err

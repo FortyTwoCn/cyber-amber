@@ -42,7 +42,7 @@ import (
 	"github.com/FortyTwoCn/cyber-amber/internal/worker"
 )
 
-const version = "0.1.2"
+const version = "0.1.3"
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "configuration file; missing default file is allowed")
@@ -236,6 +236,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		poller.SetErrorObserver(metrics.NotificationErrors.Inc)
 		poller.SetLogger(logger)
 		server.SetMentionPollWake(poller.Wake)
+		server.SetMentionPoll(poller.RunOnce)
 		startBackground(func() { poller.Run(appCtx) })
 	}
 	serverErrors := make(chan error, 1)

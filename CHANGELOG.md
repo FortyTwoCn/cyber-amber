@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 - 2026-08-15
+
+- Send the B站 message-center Referer, Origin and Accept headers when reading `/x/msgfeed/at`.
+- Added an administrator-only “立即轮询 @” action that reports the current B站 error or persisted cursor immediately.
+- Serialized scheduled and manual notification polls to prevent cursor races.
+- Log newly persisted mention batches without exposing raw notification payloads or account credentials.
+
 ## 0.1.2 - 2026-08-15
 
 - Added a recent mention inbox to the administration console, including ingestion status and rejection codes such as `CLIP_TOO_LONG`.

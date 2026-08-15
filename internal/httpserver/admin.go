@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	biliclient "github.com/FortyTwoCn/cyber-amber/internal/bili/client"
 	"github.com/FortyTwoCn/cyber-amber/internal/config"
 	"github.com/FortyTwoCn/cyber-amber/internal/httpserver/security"
 	"github.com/FortyTwoCn/cyber-amber/internal/store"
@@ -257,6 +259,28 @@ func (s *Server) adminResume(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "bot_resume", "bot")
 	writeJSON(w, http.StatusOK, map[string]bool{"paused": false})
+}
+
+func (s *Server) adminPollMentions(w http.ResponseWriter, r *http.Request) {
+	if s.mentionPoll == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "BILI_NOTIFICATION_DISABLED", "@ 通知监听未启用")
+		return
+	}
+	if err := s.mentionPoll(r.Context()); err != nil {
+		redacted := biliclient.Redact(err.Error())
+		if storeErr := s.store.RecordCursorError(context.WithoutCancel(r.Context()), "bili_at", redacted); storeErr != nil {
+			s.logger.Error("persist manual mention poll error", "error", storeErr)
+		}
+		writeError(w, r, http.StatusBadGateway, "BILI_NOTIFICATION_POLL_FAILED", redacted)
+		return
+	}
+	cursor, err := s.store.LoadCursor(r.Context(), "bili_at")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "读取通知游标失败")
+		return
+	}
+	s.audit(r, "bot_poll_mentions", "bili_at")
+	writeJSON(w, http.StatusOK, map[string]any{"polled": true, "cursor": cursor})
 }
 func (s *Server) adminJobs(w http.ResponseWriter, r *http.Request) {
 	jobs, err := s.store.ListJobs(r.Context(), 100, 0)

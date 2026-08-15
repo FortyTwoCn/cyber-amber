@@ -36,3 +36,12 @@
 - 许可证：仓库在检查时没有声明许可证（GitHub `licenseInfo` 为空，仓库树中未见 LICENSE 文件）。
 
 按用户建议检查了 `app.py`、`comment_reply_system.py`、`comment_monitor_helpers.py`、`comment_playwright.py`、`bili_wbi.py` 和 `README.md` 中的扫码登录、Cookie、CSRF、评论与图片上传接口行为。由此复核了 passport 请求上下文、扫码成功响应 Cookie 以及 `csrf_token` 兼容字段。本项目仅将其作为接口行为线索，相关 Go 实现和测试均独立编写；没有复制、翻译或分发该未授权仓库的代码。
+
+## RSSHub Bilibili message-at route
+
+- URL: https://github.com/DIYgod/RSSHub/blob/ddaa58f793eb5c5a8075ec507ce86dcd2e17cd95/lib/routes/bilibili/message-at.ts
+- 实际检查 commit: `ddaa58f793eb5c5a8075ec507ce86dcd2e17cd95`
+- 检查日期：2026-08-15
+- 许可证：AGPL-3.0
+
+只用于复核仍在使用的 `/x/msgfeed/at` 路径、分页参数以及消息中心 Referer 请求上下文；没有复制其 TypeScript 实现或响应展示逻辑。项目自身已采用 GPL-3.0-only。

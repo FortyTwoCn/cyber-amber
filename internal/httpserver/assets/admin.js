@@ -345,6 +345,22 @@ $("check-account").addEventListener("click", () => runAccountAction(
   "账号会话检查通过",
 ));
 
+$("poll-mentions").addEventListener("click", async () => {
+  const button = $("poll-mentions");
+  setButtonBusy(button, true, "轮询中…", "立即轮询 @");
+  setMessage($("mention-poll-status"), "正在读取 B站 @ 我的通知…", "loading");
+  try {
+    const body = await api("/api/v1/admin/bot/poll", { method: "POST", body: "{}" });
+    const succeededAt = body.cursor?.LastSuccess || body.cursor?.last_success_at;
+    setMessage($("mention-poll-status"), `轮询成功${succeededAt ? ` · ${formatTime(succeededAt)}` : ""}`, "success");
+    await refresh();
+  } catch (error) {
+    setMessage($("mention-poll-status"), `轮询失败：${error.message}`, "error");
+  } finally {
+    setButtonBusy(button, false, "轮询中…", "立即轮询 @");
+  }
+});
+
 $("pause-button").addEventListener("click", () => runAccountAction(
   "pause-button",
   "暂停中…",

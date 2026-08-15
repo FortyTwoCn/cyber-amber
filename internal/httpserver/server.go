@@ -76,6 +76,7 @@ type Server struct {
 	adminSessions *security.SessionManager
 	secureCookie  bool
 	mentionWake   func()
+	mentionPoll   func(context.Context) error
 }
 
 func New(cfg config.Config, store *store.Store, resolver video.VideoResolver, accounts *auth.Service, metrics *observability.Metrics, ready *Readiness, logger *slog.Logger) (*Server, error) {
@@ -98,6 +99,10 @@ func New(cfg config.Config, store *store.Store, resolver video.VideoResolver, ac
 // SetMentionPollWake connects successful account operations to the durable
 // mention poller without coupling HTTP handlers to its concrete type.
 func (s *Server) SetMentionPollWake(wake func()) { s.mentionWake = wake }
+
+// SetMentionPoll connects the administrator's explicit read-only diagnostic
+// action to the serialized durable poller.
+func (s *Server) SetMentionPoll(poll func(context.Context) error) { s.mentionPoll = poll }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -128,6 +133,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/admin/account/qrcode/{id}", s.requireAdmin(s.adminPollQR))
 	mux.HandleFunc("POST /api/v1/admin/bot/pause", s.requireAdminCSRF(s.adminPause))
 	mux.HandleFunc("POST /api/v1/admin/bot/resume", s.requireAdminCSRF(s.adminResume))
+	mux.HandleFunc("POST /api/v1/admin/bot/poll", s.requireAdminCSRF(s.adminPollMentions))
 	mux.HandleFunc("GET /api/v1/admin/mentions", s.requireAdmin(s.adminMentions))
 	mux.HandleFunc("GET /api/v1/admin/jobs", s.requireAdmin(s.adminJobs))
 	mux.HandleFunc("GET /api/v1/admin/jobs/{id}", s.requireAdmin(s.adminJobDetail))

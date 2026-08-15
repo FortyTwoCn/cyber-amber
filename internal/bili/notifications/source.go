@@ -29,7 +29,7 @@ func (s *Source) Poll(ctx context.Context, cursor Cursor) (Page, error) {
 		query.Set("at_time", strconv.FormatInt(cursor.Time, 10))
 	}
 	var result response
-	if err := s.client.GetJSON(ctx, endpoints.MentionFeed, query, &result); err != nil {
+	if err := s.client.GetJSONWithPageContext(ctx, endpoints.MentionFeed, query, "https://message.bilibili.com/", "https://message.bilibili.com", &result); err != nil {
 		return Page{}, err
 	}
 	if err := client.Check(result.Code, result.Message); err != nil {
