@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 - 2026-08-15
+
+- Use the current comment-image upload context (`biz=new_dyn`) and preserve the server-provided `img_size` instead of substituting a file-size estimate.
+- Verify the assigned root-comment rpid without account cookies and distinguish publicly visible comments from review delays and confirmed deletion.
+- Mark the delivery job failed, pause bot writes for 30 minutes, and suppress the misleading original-comment hint after a confirmed instant deletion.
+- Record the first real-account write result: image upload and `reply/add` returned success, but B站 subsequently deleted the assigned root comment.
+
 ## 0.1.4 - 2026-08-15
 
 - Accept both string and numeric `item.type` values from the authenticated B站 mention feed.

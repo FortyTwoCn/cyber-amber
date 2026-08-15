@@ -22,7 +22,7 @@ type UploadedImage struct {
 	URL    string  `json:"image_url"`
 	Width  int     `json:"image_width"`
 	Height int     `json:"image_height"`
-	SizeKB float64 `json:"size"`
+	Size   float64 `json:"img_size"`
 }
 
 func (i *UploadedImage) UnmarshalJSON(data []byte) error {
@@ -30,6 +30,7 @@ func (i *UploadedImage) UnmarshalJSON(data []byte) error {
 		URL       string          `json:"image_url"`
 		Width     json.RawMessage `json:"image_width"`
 		Height    json.RawMessage `json:"image_height"`
+		ImgSize   json.RawMessage `json:"img_size"`
 		Size      json.RawMessage `json:"size"`
 		ImageSize json.RawMessage `json:"image_size"`
 	}
@@ -44,7 +45,10 @@ func (i *UploadedImage) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("image_height: %w", err)
 	}
-	sizeRaw := raw.Size
+	sizeRaw := raw.ImgSize
+	if len(sizeRaw) == 0 || string(sizeRaw) == "null" {
+		sizeRaw = raw.Size
+	}
 	if len(sizeRaw) == 0 || string(sizeRaw) == "null" {
 		sizeRaw = raw.ImageSize
 	}
@@ -55,7 +59,7 @@ func (i *UploadedImage) UnmarshalJSON(data []byte) error {
 	if math.IsNaN(width) || math.IsInf(width, 0) || math.Trunc(width) != width || math.IsNaN(height) || math.IsInf(height, 0) || math.Trunc(height) != height || width > 16384 || height > 16384 || math.IsNaN(size) || math.IsInf(size, 0) {
 		return errors.New("image dimensions or size are not finite safe values")
 	}
-	i.URL, i.Width, i.Height, i.SizeKB = raw.URL, int(width), int(height), size
+	i.URL, i.Width, i.Height, i.Size = raw.URL, int(width), int(height), size
 	return nil
 }
 
@@ -111,7 +115,7 @@ func (u *HTTPUploader) Upload(ctx context.Context, path, csrf string) (*Uploaded
 			return nil, err
 		}
 		var result client.Envelope[UploadedImage]
-		err = u.client.DoMultipart(ctx, endpoints.ImageUpload, map[string]string{"biz": "draw", "category": "daily", "csrf": csrf, "csrf_token": csrf}, "file_up", "cyber-amber.gif", "image/gif", file, &result)
+		err = u.client.DoMultipart(ctx, endpoints.ImageUpload, map[string]string{"biz": "new_dyn", "category": "daily", "csrf": csrf, "csrf_token": csrf}, "file_up", "cyber-amber.gif", "image/gif", file, &result)
 		_ = file.Close()
 		if err == nil {
 			err = client.Check(result.Code, result.Message)
@@ -122,11 +126,8 @@ func (u *HTTPUploader) Upload(ctx context.Context, path, csrf string) (*Uploaded
 			} else if strings.HasPrefix(result.Data.URL, "http://") {
 				result.Data.URL = "https://" + strings.TrimPrefix(result.Data.URL, "http://")
 			}
-			if result.Data.URL == "" || result.Data.Width < 1 || result.Data.Height < 1 || !biliinput.IsAllowedImageURL(result.Data.URL) {
+			if result.Data.URL == "" || result.Data.Width < 1 || result.Data.Height < 1 || result.Data.Size <= 0 || !biliinput.IsAllowedImageURL(result.Data.URL) {
 				return nil, errors.New("IMAGE_UPLOAD_STRUCTURE_CHANGED: 上传响应缺少图片信息")
-			}
-			if result.Data.SizeKB <= 0 {
-				result.Data.SizeKB = float64(stat.Size()) / 1024
 			}
 			return &result.Data, nil
 		}

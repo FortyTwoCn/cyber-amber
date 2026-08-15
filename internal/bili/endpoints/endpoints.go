@@ -12,6 +12,7 @@ const (
 	ImageUpload    = "/x/dynamic/feed/draw/upload_bfs"
 	CommentAdd     = "/x/v2/reply/add"
 	CommentList    = "/x/v2/reply/main"
+	CommentDetail  = "/x/v2/reply/detail"
 	CommentReply   = "/x/v2/reply/reply"
 	QRCodeGenerate = "/x/passport-login/web/qrcode/generate"
 	QRCodePoll     = "/x/passport-login/web/qrcode/poll"

@@ -27,10 +27,10 @@ func TestUploadGIFMultipart(t *testing.T) {
 		if _, err := file.Read(magic); err != nil || string(magic) != "GIF89a" {
 			t.Fatalf("magic=%q err=%v", magic, err)
 		}
-		if header.Header.Get("Content-Type") != "image/gif" || r.FormValue("biz") != "draw" || r.FormValue("category") != "daily" || r.FormValue("csrf") != "csrf-value" || r.FormValue("csrf_token") != "csrf-value" {
+		if header.Header.Get("Content-Type") != "image/gif" || r.FormValue("biz") != "new_dyn" || r.FormValue("category") != "daily" || r.FormValue("csrf") != "csrf-value" || r.FormValue("csrf_token") != "csrf-value" {
 			t.Fatalf("unexpected multipart: header=%v form=%v", header.Header, r.MultipartForm.Value)
 		}
-		fmt.Fprint(w, `{"code":0,"data":{"image_url":"//i0.hdslb.com/a.gif","image_width":"640","image_height":360,"image_size":"12.5"}}`)
+		fmt.Fprint(w, `{"code":0,"data":{"image_url":"//i0.hdslb.com/a.gif","image_width":"640","image_height":360,"img_size":"12.5"}}`)
 	}))
 	defer server.Close()
 
@@ -43,7 +43,7 @@ func TestUploadGIFMultipart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.URL != "https://i0.hdslb.com/a.gif" || result.Width != 640 || result.Height != 360 || result.SizeKB != 12.5 {
+	if result.URL != "https://i0.hdslb.com/a.gif" || result.Width != 640 || result.Height != 360 || result.Size != 12.5 {
 		t.Fatalf("unexpected result %#v", result)
 	}
 }
@@ -52,6 +52,30 @@ func TestUploadedImageRejectsFractionalDimensions(t *testing.T) {
 	var image UploadedImage
 	if err := json.Unmarshal([]byte(`{"image_url":"https://i0.hdslb.com/a.gif","image_width":640.5,"image_height":360,"size":12}`), &image); err == nil {
 		t.Fatal("fractional image width was accepted")
+	}
+}
+
+func TestUploadedImageLeavesMissingServerSizeZero(t *testing.T) {
+	var image UploadedImage
+	if err := json.Unmarshal([]byte(`{"image_url":"https://i0.hdslb.com/a.gif","image_width":640,"image_height":360}`), &image); err != nil {
+		t.Fatal(err)
+	}
+	if image.Size != 0 {
+		t.Fatalf("unexpected size %v", image.Size)
+	}
+}
+
+func TestUploadRejectsMissingServerImageSize(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"code":0,"data":{"image_url":"//i0.hdslb.com/a.gif","image_width":640,"image_height":360}}`)
+	}))
+	defer server.Close()
+	path := filepath.Join(t.TempDir(), "artifact.gif")
+	if err := os.WriteFile(path, []byte("GIF89a fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(client.New(server.Client(), server.URL, server.URL, "test")).Upload(context.Background(), path, "csrf"); err == nil {
+		t.Fatal("upload response without img_size was accepted")
 	}
 }
 

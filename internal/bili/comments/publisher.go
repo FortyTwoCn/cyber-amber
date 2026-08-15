@@ -45,6 +45,7 @@ type PublishedComment struct {
 type Publisher interface {
 	PublishRootImageComment(context.Context, PublishRequest) (*PublishedComment, error)
 	FindTaskMarker(context.Context, int64, string, int64) (*PublishedComment, error)
+	VerifyRootImageComment(context.Context, int64, int64, string, int64, string) (*PublishedComment, error)
 	ReplyOriginal(context.Context, int64, int64, int64, string, string) (int64, error)
 }
 type HTTPPublisher struct{ client *client.Client }
@@ -63,7 +64,7 @@ func (p *HTTPPublisher) PublishRootImageComment(ctx context.Context, request Pub
 		Height int     `json:"img_height"`
 		Size   float64 `json:"img_size"`
 	}
-	pictures, _ := json.Marshal([]picturePayload{{Source: request.Image.URL, Width: request.Image.Width, Height: request.Image.Height, Size: request.Image.SizeKB}})
+	pictures, _ := json.Marshal([]picturePayload{{Source: request.Image.URL, Width: request.Image.Width, Height: request.Image.Height, Size: request.Image.Size}})
 	form := url.Values{"oid": {strconv.FormatInt(request.AID, 10)}, "type": {VideoReplyType}, "message": {message}, "pictures": {string(pictures)}, "at_name_to_mid": {string(atMap)}, "plat": {"1"}, "csrf": {request.CSRF}, "csrf_token": {request.CSRF}, "gaia_source": {"main_web"}, "statistics": {`{"appId":100,"platform":5}`}}
 	var result struct {
 		Code    int    `json:"code"`
@@ -195,6 +196,102 @@ func containsTaskMarker(message, taskID string) bool {
 		}
 	}
 	return false
+}
+
+// VerifyRootImageComment checks the assigned rpid without the account Cookie,
+// so a successful result is evidence of visitor-side visibility. Bilibili may
+// accept a reply/add request and then delete the comment asynchronously; the
+// reply endpoint's 12022 response distinguishes that outcome from an ordinary
+// propagation/review delay.
+func (p *HTTPPublisher) VerifyRootImageComment(ctx context.Context, aid, rpid int64, taskID string, expectedAuthorMID int64, expectedImageURL string) (*PublishedComment, error) {
+	if aid <= 0 || rpid <= 0 || taskID == "" || expectedAuthorMID <= 0 || !biliinput.IsAllowedImageURL(expectedImageURL) {
+		return nil, errors.New("invalid root image comment verification")
+	}
+	query := url.Values{"type": {VideoReplyType}, "oid": {strconv.FormatInt(aid, 10)}, "root": {strconv.FormatInt(rpid, 10)}}
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    *struct {
+			Root *struct {
+				RPID   numericID `json:"rpid"`
+				Member struct {
+					MID numericID `json:"mid"`
+				} `json:"member"`
+				Content struct {
+					Message  string `json:"message"`
+					Pictures []struct {
+						ImgSrc string `json:"img_src"`
+					} `json:"pictures"`
+				} `json:"content"`
+			} `json:"root"`
+		} `json:"data"`
+	}
+	if err := p.client.GetPublicJSON(ctx, endpoints.CommentDetail, query, &result); err != nil {
+		return nil, err
+	}
+	if result.Code == 12006 || result.Code == 12022 {
+		deleted, err := p.confirmDeleted(ctx, aid, rpid)
+		if err != nil {
+			return nil, err
+		}
+		status := PendingReview
+		if deleted || result.Code == 12022 {
+			status = Deleted
+		}
+		return &PublishedComment{RPID: rpid, Status: status, ImageURL: expectedImageURL}, nil
+	}
+	if err := client.Check(result.Code, result.Message); err != nil {
+		return nil, err
+	}
+	if result.Data == nil || result.Data.Root == nil {
+		return &PublishedComment{RPID: rpid, Status: PendingReview, ImageURL: expectedImageURL}, nil
+	}
+	root := result.Data.Root
+	if int64(root.RPID) != rpid || int64(root.Member.MID) != expectedAuthorMID || !containsTaskMarker(root.Content.Message, taskID) {
+		return nil, errors.New("COMMENT_DETAIL_STRUCTURE_CHANGED: 指定 rpid 的作者或任务标记不匹配")
+	}
+	imageURL := ""
+	if len(root.Content.Pictures) > 0 {
+		imageURL = normalizeImageURL(root.Content.Pictures[0].ImgSrc)
+	}
+	status := Published
+	if imageURL == "" || imageURL != normalizeImageURL(expectedImageURL) {
+		status = PendingReview
+	}
+	return &PublishedComment{RPID: rpid, Status: status, Message: root.Content.Message, ImageURL: imageURL}, nil
+}
+
+func (p *HTTPPublisher) confirmDeleted(ctx context.Context, aid, rpid int64) (bool, error) {
+	query := url.Values{"type": {VideoReplyType}, "oid": {strconv.FormatInt(aid, 10)}, "root": {strconv.FormatInt(rpid, 10)}, "pn": {"1"}, "ps": {"1"}}
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := p.client.GetPublicJSON(ctx, endpoints.CommentReply, query, &result); err != nil {
+		return false, err
+	}
+	if result.Code == 12022 {
+		return true, nil
+	}
+	if result.Code == 12006 {
+		return false, nil
+	}
+	if err := client.Check(result.Code, result.Message); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+func normalizeImageURL(value string) string {
+	if strings.HasPrefix(value, "//") {
+		value = "https:" + value
+	} else if strings.HasPrefix(value, "http://") {
+		value = "https://" + strings.TrimPrefix(value, "http://")
+	}
+	if !biliinput.IsAllowedImageURL(value) {
+		return ""
+	}
+	return value
 }
 
 func (p *HTTPPublisher) ReplyOriginal(ctx context.Context, aid, rootRPID, parentRPID int64, message, csrf string) (int64, error) {

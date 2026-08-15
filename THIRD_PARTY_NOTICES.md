@@ -8,6 +8,8 @@ Cyber Amber is distributed under **GNU GPL-3.0-only**. See `LICENSE`.
 
 `Chiyang001/BiliGo` commit `c546e3b8be6a1b02e9f065f4ca22f69112fb40cc` was inspected only for observable Bilibili request behavior at the user's request. No license was declared at the inspected revision, so no source code from that repository was copied, translated, modified, or distributed in Cyber Amber. See `docs/REFERENCES.md` for the exact inspection scope.
 
+`bggRGjQaUbCoE/PiliPlus` commit `3a7d4614743cb7289293d6c47e13d96aec544f18`, GPL-3.0, was inspected for the current observable comment-image upload field flow. No Dart source or UI was copied; Cyber Amber's independent Go adaptation and tests remain GPL-3.0-only. See `docs/REFERENCES.md`.
+
 ## Go dependencies
 
 Direct dependencies and their upstream licenses (verify again when upgrading):
