@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRedact(t *testing.T) {
@@ -108,6 +109,41 @@ func TestAuthenticatedPageRequestContext(t *testing.T) {
 	}]
 	if err := c.GetJSONWithPageContext(context.Background(), "/message", nil, "https://message.bilibili.com/", "https://message.bilibili.com", &out); err != nil || !out.Data.OK {
 		t.Fatalf("out=%#v err=%v", out, err)
+	}
+}
+
+func TestMultipartUsesMediaUploadTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(40 * time.Millisecond)
+		_, _ = fmt.Fprint(w, `{"code":0,"data":{"ok":true}}`)
+	}))
+	defer server.Close()
+
+	shortClient := server.Client()
+	shortClient.Timeout = 5 * time.Millisecond
+	c := New(shortClient, server.URL, server.URL, "test")
+	var out Envelope[struct {
+		OK bool `json:"ok"`
+	}]
+	err := c.DoMultipart(context.Background(), "/upload", map[string]string{"biz": "new_dyn"}, "file_up", "test.gif", "image/gif", strings.NewReader("GIF89a"), &out)
+	if err != nil || !out.Data.OK {
+		t.Fatalf("multipart did not receive its dedicated timeout: out=%#v err=%v", out, err)
+	}
+}
+
+func TestMultipartStillRespectsCallerDeadline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(50 * time.Millisecond)
+		_, _ = fmt.Fprint(w, `{"code":0}`)
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer cancel()
+	var out Envelope[struct{}]
+	err := New(server.Client(), server.URL, server.URL, "test").DoMultipart(ctx, "/upload", nil, "file_up", "test.gif", "image/gif", strings.NewReader("GIF89a"), &out)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("multipart ignored caller deadline: %v", err)
 	}
 }
 
