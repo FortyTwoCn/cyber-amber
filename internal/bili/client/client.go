@@ -18,7 +18,10 @@ import (
 	"github.com/FortyTwoCn/cyber-amber/internal/bili/endpoints"
 )
 
-const maxJSONBody = 16 << 20
+const (
+	maxJSONBody             = 16 << 20
+	multipartRequestTimeout = 90 * time.Second
+)
 
 type APIError struct {
 	HTTPStatus int
@@ -179,7 +182,19 @@ func (c *Client) DoMultipart(ctx context.Context, path string, fields map[string
 	if err = writer.Close(); err != nil {
 		return fmt.Errorf("finish multipart: %w", err)
 	}
-	return c.doJSON(ctx, http.MethodPost, c.APIURL(path, nil), &body, out, true, writer.FormDataContentType())
+	req, err := c.newRequest(ctx, http.MethodPost, c.APIURL(path, nil), &body, true)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	httpClient := c.httpClient
+	if httpClient.Timeout == 0 || httpClient.Timeout < multipartRequestTimeout {
+		clone := *httpClient
+		clone.Timeout = multipartRequestTimeout
+		httpClient = &clone
+	}
+	_, err = c.doJSONRequestWithClient(httpClient, req, out)
+	return err
 }
 
 func (c *Client) doJSON(ctx context.Context, method, target string, body io.Reader, out any, authenticated bool, contentType ...string) error {
@@ -195,7 +210,11 @@ func (c *Client) doJSON(ctx context.Context, method, target string, body io.Read
 }
 
 func (c *Client) doJSONRequest(req *http.Request, out any) ([]*http.Cookie, error) {
-	resp, err := c.httpClient.Do(req)
+	return c.doJSONRequestWithClient(c.httpClient, req, out)
+}
+
+func (c *Client) doJSONRequestWithClient(httpClient *http.Client, req *http.Request, out any) ([]*http.Cookie, error) {
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		c.observe(req.URL.Path, 0)
 		return nil, fmt.Errorf("bilibili request: %w", err)

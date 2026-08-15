@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 - 2026-08-15
+
+- Give multipart media uploads a dedicated 90-second HTTP timeout instead of the 20-second API timeout.
+- Preserve the enclosing job deadline and existing bounded upload retries while allowing large GIF uploads to wait for Bilibili's response headers.
+- Add a regression test proving that the upload timeout overrides a shorter general API-client timeout.
+
 ## 0.1.5 - 2026-08-15
 
 - Use the current comment-image upload context (`biz=new_dyn`) and preserve the server-provided `img_size` instead of substituting a file-size estimate.
